@@ -12,7 +12,7 @@ Executed locally on macOS arm64, 2026-09-10. Stable compiler: Rust 1.95.0; decla
 | `cargo +1.88.0 build --locked` | Passed |
 | `cargo +1.88.0 test --locked` | Passed, same 69 offline tests |
 | `actionlint .github/workflows/*.yml` | Passed |
-| `aislop ci` with generated defaults | Passed, 99/100; one canonical FxTwitter-origin advisory, no rule/threshold weakening |
+| `aislop ci` with gate 90 and otherwise default settings | Passed, 99/100; one canonical FxTwitter-origin advisory, no rule/threshold weakening |
 | Explicit FxTwitter public CLI test | Passed |
 | Explicit public X manifest/hash test | Passed, no authenticated query |
 | Real Chrome/Keychain and authenticated GraphQL | Not performed; explicit user consent/profile selection still required |
