@@ -1,0 +1,43 @@
+# Changelog
+
+All notable changes to `xcli` are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## [Unreleased]
+
+## [0.1.0] - 2026-09-10
+
+First public-read release. Authenticated functionality remains experimental; search is known to fail in the observed account and is not part of the verified public-read claim.
+
+### Added
+
+- Checksum-verifying macOS release installer, with isolated offline installer tests and explicit post-publication download/install/public-read verification on Apple Silicon and Intel.
+- Repeatable public release verifier covering ID/URL reads, JSON/human output, real multi-post parent chains and limits, cache controls, routing rejection and local diagnostics.
+- Safe GraphQL failure diagnostics distinguish HTTP status, numeric upstream error codes, response roots and parser stages. Live tests forward only this typed metadata, never raw stderr or upstream messages.
+
+- Local live integration-test target behind the `live-tests` feature, with ignored public checks and a sequential authenticated read smoke test requiring separate consent and an existing account/profile. Runtime CI/opt-in guards keep normal tests offline.
+
+- Scoped AGENTS.md contributor checklists for credentials, providers, tests and workflows, plus a root architecture/documentation map; credential guidance moved from its module README.
+
+- Experimental Phase 1 read-only Rust CLI work: public FxTwitter retrieval, normalized output, explicit account/profile configuration, account-isolated caching, bounded pagination, and isolated X GraphQL read-query definitions.
+- Consent-gated macOS Chrome credential-loading work and stable-account identity safeguards, with synthetic credentials and mocked HTTP tests rather than live authenticated validation.
+- Ubuntu and macOS CI for formatting, Clippy, locked builds/tests, rustdoc, and Rust 1.88 compatibility; tag-validated Apple silicon and Intel macOS release packaging with SHA-256 checksums and a mandatory CI gate.
+- Best-README-Template-based README and contributor documentation covering installation, actual commands, exit codes, dependency rationale, credential-safe testing, and release conventions.
+- Generated aislop project configuration and GitHub Actions quality gate, raised to 95.
+- Per-scope bounded cache files, purge controls, persisted cooldowns, explicit local connection removal/renaming/preferences, and parent/reply completeness metadata.
+
+### Changed
+
+- Split app dispatch, account commands, read-task validation and retrieval into focused modules; separate Unix state storage from its public facade.
+- Extract substantial credential, GraphQL, cache, config and state unit tests into private child-module files, preserving coverage and adding app dispatch/cooldown regression tests.
+
+### Fixed
+
+- Align GraphQL GET requests with the reviewed X adapter's `Content-Type: application/json` header. The user-observed search HTTP 404 still needs a consented retry; no endpoint-ID or method fallback was introduced.
+
+### Known limitations
+
+- Phase 1 is experimental. A user-run authenticated smoke test passed post, parent-chain and reply stages, then failed at search with exit 8; timeline was not reached. Full interoperability and broader Chrome/Keychain compatibility remain unverified.
+- Unofficial endpoints may change or restrict access. Bounded thread/reply retrieval does not promise a complete conversation tree.
+- Phase 2 lists, bookmarks, likes, and follows are tracked in [#1](https://github.com/codesoda/x-cli/issues/1) and [the Phase 2 plan](docs/phase-2.md), not implemented mutations. Posting and DMs remain out of scope.
