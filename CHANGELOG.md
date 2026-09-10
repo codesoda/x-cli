@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-10
+
+### Fixed
+
+- Support authenticated GitHub CLI downloads for private repositories in the installer and native post-release verification. Anonymous URLs for this private repository return 404; repository visibility is unchanged.
+- Test explicit GitHub CLI and auto-selection download modes with injected offline tools.
+
 ## [0.1.0] - 2026-09-10
 
 First public-read release. Authenticated functionality remains experimental; search is known to fail in the observed account and is not part of the verified public-read claim.

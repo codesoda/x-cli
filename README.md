@@ -44,10 +44,16 @@ Modules separate CLI routing, normalized models, providers, credential loading, 
 
 ### Installation
 
-Install the latest [GitHub release](https://github.com/codesoda/x-cli/releases) on macOS:
+Install the latest [GitHub release](https://github.com/codesoda/x-cli/releases) on macOS.
+This repository is currently **private**, so use an authenticated GitHub CLI (`gh`)
+with repository access; anonymous download URLs return 404:
 
 ```sh
-curl -fsSL https://github.com/codesoda/x-cli/releases/latest/download/install.sh | sh
+# Run gh auth login first if you have not authenticated GitHub CLI.
+work=$(mktemp -d)
+gh release download --repo codesoda/x-cli --pattern install.sh --dir "$work"
+XCLI_DOWNLOAD_MODE=gh sh "$work/install.sh"
+rm -rf "$work"
 ~/.local/bin/xcli --version
 ~/.local/bin/xcli read https://x.com/jack/status/20
 ```
@@ -55,8 +61,11 @@ curl -fsSL https://github.com/codesoda/x-cli/releases/latest/download/install.sh
 The installer selects Apple Silicon/Intel, verifies the archive's SHA-256 checksum,
 checks the binary version, and installs atomically to `~/.local/bin/xcli` without
 sudo. Add `~/.local/bin` to PATH. To inspect before executing, download `install.sh`
-from the release page and run it with `sh`. Set `XCLI_VERSION=v0.1.0` to pin a
-release or `XCLI_INSTALL_DIR=/your/bin` to choose the destination. Archives and
+from the release page and run it with `sh`. Set `XCLI_VERSION=v0.1.1` to pin a
+release (use `v0.1.1` or newer for private-repository installation), or
+`XCLI_INSTALL_DIR=/your/bin` to choose the destination. Download mode defaults to
+an authenticated `gh` when available, otherwise anonymous curl; select explicitly
+with `XCLI_DOWNLOAD_MODE=gh|curl`. Archives and
 `checksums-sha256.txt` are also available for manual installation.
 
 Build from source instead:

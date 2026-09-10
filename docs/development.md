@@ -149,7 +149,13 @@ install into isolated directories, and explicitly run
 network check is not part of normal CI or the locally gated authenticated suite.
 Its JSON evidence is uploaded per architecture. See [public-release.md](public-release.md).
 
-`install.sh` supports `XCLI_VERSION` (otherwise latest) and `XCLI_INSTALL_DIR`
+`install.sh` supports `XCLI_DOWNLOAD_MODE=auto|gh|curl`: auto uses an authenticated
+GitHub CLI when available, otherwise curl. Private repositories require `gh`
+with repository access; do not change repository visibility to bypass download
+failures. CI supplies its scoped GitHub token only to the download/install step,
+never to X or public-read tests.
+
+The installer also supports `XCLI_VERSION` (otherwise latest) and `XCLI_INSTALL_DIR`
 (otherwise `~/.local/bin`). It verifies the selected asset checksum, archive
 contents and executable version before replacing an installation. Installer
 regression tests are offline with synthetic executable archives and child-process
