@@ -1,0 +1,186 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to build, for example v0.1.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  RUSTFLAGS: "-D warnings"
+  CARGO_INCREMENTAL: "0"
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  validate:
+    name: Validate exact tag and release notes
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      sha: ${{ steps.commit.outputs.sha }}
+    steps:
+      - name: Validate tag syntax before checkout
+        id: tag
+        shell: bash
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            printf '%s\n' 'Expected a v-prefixed version tag' >&2
+            exit 1
+          fi
+          printf 'tag=%s\n' "$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ steps.tag.outputs.tag }}
+          persist-credentials: false
+
+      - name: Record immutable commit
+        id: commit
+        run: printf 'sha=%s\n' "$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Check package version and extract Keep a Changelog notes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          import pathlib
+          import re
+          import tomllib
+
+          tag = os.environ["RELEASE_TAG"]
+          version = tag.removeprefix("v")
+          package = tomllib.loads(pathlib.Path("Cargo.toml").read_text())["package"]
+          if package["name"] != "xcli" or package["version"] != version:
+              raise SystemExit("Release tag must match the xcli Cargo.toml version")
+          lines = pathlib.Path("CHANGELOG.md").read_text().splitlines(keepends=True)
+          sections = []
+          for index, line in enumerate(lines):
+              match = re.match(r"^## \[([^\]]+)\](?:\s.*)?$", line.rstrip("\n"))
+              if match and match[1] in (tag, version):
+                  end = next((i for i in range(index + 1, len(lines))
+                              if lines[i].startswith("## ")), len(lines))
+                  sections.append(lines[index:end])
+          if len(sections) != 1 or not "".join(sections[0][1:]).strip():
+              raise SystemExit("Expected one nonempty changelog section matching the release tag")
+          pathlib.Path("release-notes.md").write_text("".join(sections[0]))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes.md
+          if-no-files-found: error
+
+  checks:
+    name: CI gate for tagged commit
+    needs: validate
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ needs.validate.outputs.sha }}
+
+  build:
+    name: build (${{ matrix.target }})
+    needs: [validate, checks]
+    runs-on: ${{ matrix.runs_on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            runs_on: macos-15
+          - target: x86_64-apple-darwin
+            runs_on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+
+      - name: Build release binary
+        env:
+          TARGET: ${{ matrix.target }}
+        run: cargo build --locked --release --target "$TARGET"
+
+      - name: Test release target
+        env:
+          TARGET: ${{ matrix.target }}
+        run: cargo test --locked --release --target "$TARGET"
+
+      - name: Package release tarball
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          mkdir -p dist/package
+          install -m 0755 "target/$TARGET/release/xcli" dist/package/xcli
+          tar -C dist/package -czf "dist/xcli-${RELEASE_TAG}-${TARGET}.tar.gz" xcli
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.target }}
+          path: dist/xcli-${{ needs.validate.outputs.tag }}-${{ matrix.target }}.tar.gz
+          if-no-files-found: error
+
+  publish:
+    name: publish release
+    runs-on: ubuntu-latest
+    needs: [validate, checks, build]
+    permissions:
+      contents: write
+    steps:
+      # Re-resolve the tag: refuse a deleted or moved tag rather than creating one.
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ needs.validate.outputs.tag }}
+          persist-credentials: false
+
+      - name: Verify tag still identifies the tested commit
+        env:
+          EXPECTED_SHA: ${{ needs.validate.outputs.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: binary-*
+          merge-multiple: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-notes
+          path: dist
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum "xcli-${RELEASE_TAG}-aarch64-apple-darwin.tar.gz" \
+            "xcli-${RELEASE_TAG}-x86_64-apple-darwin.tar.gz" > checksums-sha256.txt
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.validate.outputs.tag }}
+          overwrite_files: true
+          body_path: dist/release-notes.md
+          files: |
+            dist/xcli-*.tar.gz
+            dist/checksums-sha256.txt
+          fail_on_unmatched_files: true
