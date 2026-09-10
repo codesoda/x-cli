@@ -73,6 +73,13 @@ fn required(name: &str) -> String {
             panic!("Set {name} explicitly; no account/profile is selected automatically")
         })
 }
+fn safe_diagnostic(stderr: &[u8]) -> Option<xcli::error::Diagnostic> {
+    if stderr.len() > 64 * 1024 {
+        return None;
+    }
+    let error: serde_json::Value = serde_json::from_slice(stderr).ok()?;
+    serde_json::from_value(error.get("diagnostic")?.clone()).ok()
+}
 fn run(root: &Path, args: &[&str], stage: &str) -> Output {
     let result = Command::new(env!("CARGO_BIN_EXE_xcli"))
         .arg("--data-dir")
@@ -83,8 +90,9 @@ fn run(root: &Path, args: &[&str], stage: &str) -> Output {
         .unwrap_or_else(|_| panic!("{stage}: cannot launch xcli"));
     assert!(
         matches!(result.status.code(), Some(0 | 12)),
-        "{stage}: xcli failed with exit {:?}; payload and stderr withheld",
-        result.status.code()
+        "{stage}: xcli failed with exit {:?}; diagnostic={:?}; payload and raw stderr withheld",
+        result.status.code(),
+        safe_diagnostic(&result.stderr)
     );
     let output: Output = serde_json::from_slice(&result.stdout)
         .unwrap_or_else(|_| panic!("{stage}: invalid normalized output; payload withheld"));
@@ -105,6 +113,23 @@ fn run(root: &Path, args: &[&str], stage: &str) -> Output {
     output
 }
 
+#[test]
+fn diagnostics_never_forward_upstream_strings() {
+    use xcli::error::Diagnostic;
+    assert_eq!(
+        safe_diagnostic(
+            br#"{"message":"SYNTHETIC_SECRET","diagnostic":{"stage":"http","status":400}}"#
+        ),
+        Some(Diagnostic::Http { status: 400 })
+    );
+    for stderr in [
+        br#"{"diagnostic":{"stage":"SYNTHETIC_SECRET"}}"#.as_slice(),
+        br#"{"diagnostic":{"stage":"http","status":400,"message":"SYNTHETIC_SECRET"}}"#.as_slice(),
+        b"SYNTHETIC_SECRET".as_slice(),
+    ] {
+        assert!(safe_diagnostic(stderr).is_none());
+    }
+}
 #[test]
 fn live_guards_are_fail_closed() {
     for auth in [false, true] {

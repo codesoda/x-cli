@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Safe GraphQL failure diagnostics distinguish HTTP status, numeric upstream error codes, response roots and parser stages. Live tests forward only this typed metadata, never raw stderr or upstream messages.
+
 - Local live integration-test target behind the `live-tests` feature, with ignored public checks and a sequential authenticated read smoke test requiring separate consent and an existing account/profile. Runtime CI/opt-in guards keep normal tests offline.
 
 - Scoped AGENTS.md contributor checklists for credentials, providers, tests and workflows, plus a root architecture/documentation map; credential guidance moved from its module README.
@@ -26,6 +28,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Known limitations
 
-- Phase 1 is experimental. Authenticated X interoperability and real Chrome/Keychain compatibility remain unverified; source research and mocked tests do not establish that live authentication works.
+- Phase 1 is experimental. A user-run authenticated smoke test passed post, parent-chain and reply stages, then failed at search with exit 8; timeline was not reached. Full interoperability and broader Chrome/Keychain compatibility remain unverified.
 - Unofficial endpoints may change or restrict access. Bounded thread/reply retrieval does not promise a complete conversation tree.
 - Phase 2 lists, bookmarks, likes, and follows are tracked in [#1](https://github.com/codesoda/x-cli/issues/1) and [the Phase 2 plan](docs/phase-2.md), not implemented mutations. Posting and DMs remain out of scope.

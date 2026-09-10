@@ -25,7 +25,7 @@
 
 `xcli` reads posts, parent chains, conversation views, searches, and user timelines. JSON is the default; `--human` renders posts for terminal reading. Post IDs remain strings.
 
-**Phase 1 is experimental, not fully live-verified.** Public single-post retrieval has been exercised against FxTwitter. Authenticated operations are implemented against source-verified X web-client query definitions, but have **not** been tested with a real browser session. Mock tests do not establish live authentication compatibility. See [status and limitations](#status-and-limitations).
+**Phase 1 is experimental, not fully live-verified.** Public single-post retrieval has been exercised against FxTwitter. Authenticated operations use source-verified X web-client query definitions. A user-run live smoke test passed post, parent-chain and reply checks, then failed at search with exit 8; timeline testing was not reached. This is partial, user-reported verification—not a claim of full interoperability. Mock tests do not establish live authentication compatibility. See [status and limitations](#status-and-limitations).
 
 ### Built with
 
@@ -158,7 +158,7 @@ Later page failures retain obtained posts, mark partial status, and emit a warni
 | 11 | Local state/configuration/cache error |
 | 12 | Partial collection, with usable JSON on stdout |
 
-Errors are JSON on stderr; results are JSON on stdout. Scripts must explicitly accept exit 12 when consuming bounded collections. Help/version are conventional text. IDs, content, and cursor values should always be treated as untrusted upstream data.
+Errors are JSON on stderr; results are JSON on stdout. GraphQL failures may include a `diagnostic` containing only a fixed stage label and numeric HTTP/upstream error code—never raw response strings or headers. Scripts must explicitly accept exit 12 when consuming bounded collections. Help/version are conventional text. IDs, content, and cursor values should always be treated as untrusted upstream data.
 
 ## Security and caching
 
@@ -178,14 +178,14 @@ Errors are JSON on stderr; results are JSON on stdout. Scripts must explicitly a
 | --- | --- |
 | FxTwitter public post read | Implemented; public live read verified |
 | Parent-chain traversal | Implemented; bounded, explicit missing-parent handling |
-| macOS Chrome connection/Keychain | Implemented; synthetic tests only, no real profile access performed |
-| X Viewer/post/replies/search/timeline | Implemented experimental query client; first-party definitions inspected, **no authenticated live verification** |
+| macOS Chrome connection/Keychain | Synthetic coverage plus user-reported successful local connection/read stages; not accessed by the coding agent |
+| X Viewer/post/replies/search/timeline | User-reported post/parent/reply smoke checks passed; search failed with exit 8, timeline not reached; see live-verification notes |
 | Cache/account routing/security | Implemented; deterministic tests |
 | Media, quotes, metrics, articles | Not normalized in this initial text-focused model; no promise of full rich-post fidelity |
 | Other browser/OS authentication | Unsupported |
 | Phase 2 mutations | Unimplemented; [issue #1](https://github.com/codesoda/x-cli/issues/1) |
 
-**Remaining live-verification blockers:** user consent and a selected Chrome profile; current released-Chrome cookie storage compatibility; X account-specific feature values, required transaction headers, identity semantics and pagination variants. The current client uses a documented public feature snapshot plus conservative optional-variable choices. It does not fabricate transaction IDs or circumvent browser/OS/network challenges. On rejection, capture only xcli's redacted error kind/exit code and operation name—not cookies or raw responses. See [protocol evidence and attempted alternatives](docs/protocol-research.md) and the [safe local live-verification sequence](docs/live-verification.md).
+**Remaining live-verification blockers:** the user-observed search failure and untested timeline stage need further consented local evidence. Broader released-Chrome compatibility, X account-specific feature values, required transaction headers, identity semantics and pagination variants also remain unverified. The current client uses a documented public feature snapshot plus conservative optional-variable choices. It does not fabricate transaction IDs or circumvent browser/OS/network challenges. On rejection, capture only xcli's redacted error kind/exit code and operation name—not cookies or raw responses. See [protocol evidence and attempted alternatives](docs/protocol-research.md) and the [safe local live-verification sequence](docs/live-verification.md).
 
 FxTwitter can disappear or change; X's unofficial web endpoints can change or restrict access without notice. There is no guarantee of uninterrupted operation, exhaustive search, complete replies, or source freshness. A fresh local retrieval timestamp does not certify that the third-party source is fresh.
 

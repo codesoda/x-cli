@@ -64,6 +64,82 @@ fn injected_identity_query_and_http_failures() {
         assert!(!format!("{error:?}").contains("SYNTHETIC_SECRET"));
     }
 }
+#[test]
+fn query_failures_identify_http_errors_and_missing_roots() {
+    let session = Session::new("synthetic-auth".into(), "synthetic-csrf".into()).unwrap();
+    for (status, body, expected) in [
+        (
+            400,
+            json!({"message":"SYNTHETIC_SECRET"}),
+            Diagnostic::Http { status: 400 },
+        ),
+        (
+            200,
+            json!({"errors":[{"code":999,"message":"SYNTHETIC_SECRET"}]}),
+            Diagnostic::GraphqlErrors { code: Some(999) },
+        ),
+        (
+            200,
+            json!({"data":{"unexpected":"SYNTHETIC_SECRET"}}),
+            Diagnostic::ResponseRoot,
+        ),
+    ] {
+        let mock = Mock { status, body };
+        let graph = Graphql {
+            transport: &mock,
+            session: &session,
+            bearer: Zeroizing::new("synthetic-public-token".into()),
+        };
+        let error = graph
+            .page(Operation::Search, "fixture", 5, None)
+            .err()
+            .expect("Expected query failure");
+        assert_eq!(error.diagnostic, Some(expected));
+        assert!(
+            !serde_json::to_string(&error)
+                .unwrap()
+                .contains("SYNTHETIC_SECRET")
+        );
+    }
+}
+#[test]
+fn malformed_timeline_stages_are_distinct_and_redacted() {
+    for (input, expected) in [
+        (json!({}), Diagnostic::TimelineInstructions),
+        (
+            json!([{"type":"SYNTHETIC_SECRET"}]),
+            Diagnostic::TimelineInstruction,
+        ),
+        (
+            json!([{"type":"TimelineAddEntries","entries":[{"content":{}}]}]),
+            Diagnostic::TimelineEntry,
+        ),
+        (
+            json!([{"type":"TimelineAddEntries","entries":[{"content":{"itemContent":{"itemType":"SYNTHETIC_SECRET"}}}]}]),
+            Diagnostic::TimelineItem,
+        ),
+        (
+            json!([{"type":"TimelineAddEntries","entries":[{"content":{"cursorType":"Bottom"}}]}]),
+            Diagnostic::Cursor,
+        ),
+    ] {
+        let error = parse_page(&input).err().expect("Expected parsing failure");
+        assert_eq!(error.diagnostic, Some(expected));
+        assert!(
+            !serde_json::to_string(&error)
+                .unwrap()
+                .contains("SYNTHETIC_SECRET")
+        );
+    }
+    assert_eq!(
+        parse_post(&json!({})).unwrap_err().diagnostic,
+        Some(Diagnostic::Post)
+    );
+    assert_eq!(
+        parse_identity(&json!({})).unwrap_err().diagnostic,
+        Some(Diagnostic::Identity)
+    );
+}
 fn tweet() -> Value {
     json!({"__typename":"Tweet","rest_id":"20","core":{"user_results":{"result":{"__typename":"User","rest_id":"12","core":{"screen_name":"jack"}}}},"legacy":{"full_text":"short"},"note_tweet":{"note_tweet_results":{"result":{"text":"long"}}}})
 }

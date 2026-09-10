@@ -32,8 +32,9 @@ when a test fails. Nothing automatically purges cooldowns or retries a failure.
 
 ## Authenticated checks: separate explicit consent
 
-**No real Chrome profile, Keychain item or authenticated account was accessed
-during implementation.** Source inspection and mocks do not establish live
+**The coding agent has not accessed a real Chrome profile, Keychain item or
+authenticated account.** A user-run smoke test has since provided partial live
+evidence (see below). Source inspection and mocks do not establish live
 interoperability. Adding the feature is not permission for an agent to run it.
 
 First, connect the intended Chrome Stable profile yourself using the ordinary
@@ -76,7 +77,9 @@ Each CLI invocation verifies the pinned live identity before its read. All
 returned account/post payloads are captured locally and never printed. Tests
 check provenance, request-failure state, pagination bounds and completeness;
 assertions do not dump expected/actual identities or content. Failures report
-only a stage, safe assertion message or exit code. No secret environment
+only a stage, safe assertion message, exit code or strictly typed protocol
+diagnostic (fixed stage labels and numeric HTTP/upstream error codes). Raw
+stderr/messages are never forwarded. No secret environment
 variables or cookie arguments are accepted by these tests.
 
 The sequence stops immediately on failure, including rate limits. Exit 12 is
@@ -100,9 +103,27 @@ feature-gated target:
 - The pinned public X asset/hash and unique authorization-value extraction check
   passed without authenticated requests.
 
-The new target's compilation and offline opt-in guard are tested. Its live
-network/browser cases have not been rerun as part of the restructuring, and
-**authenticated interoperability remains unverified**.
+The target's compilation and offline opt-in/redaction guards are tested. A user
+reported an authenticated run that passed the post, parent-chain and reply
+stages, then failed at **search, exit 8**. The timeline stage was not reached.
+This is user-reported partial success on one profile, not independently observed
+agent testing or broad platform compatibility.
+
+The original test withheld all stderr, so the search failure did not distinguish
+HTTP rejection, GraphQL errors, a missing response root or a parser mismatch.
+Fixed-label diagnostics now expose that distinction without exposing payloads;
+no protocol behavior has been relaxed or speculative fix applied.
+
+To isolate search without repeating the passed stages, run locally:
+
+```sh
+cargo run --locked -- search 'from:jack' --account work --max-pages 1 --page-size 5 --no-cache >/dev/null
+```
+
+Replace `work` with the connected alias or `@handle`. Share only the resulting
+structured error/diagnostic, never raw HTTP bodies or
+cookies. Honor a rate-limit error before rerunning. Alternatively rerun the
+explicitly consented smoke test; it now reports the typed diagnostic on failure.
 
 ## Remaining evidence and defensible alternatives
 
