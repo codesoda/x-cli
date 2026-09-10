@@ -1,4 +1,21 @@
-# Chrome credential boundary
+# Working on Chrome credentials
+
+These instructions apply to this directory. When a change also touches the
+public session API in `../credentials.rs`, read that file and preserve the same
+invariants there; this nested AGENTS.md does not automatically scope its sibling.
+
+Before changing storage or protocol assumptions, read
+[`../../docs/protocol-research.md`](../../docs/protocol-research.md).
+Live testing instructions are in
+[`../../docs/live-verification.md`](../../docs/live-verification.md).
+Never run browser/Keychain inspection commands to investigate a failure without
+separate explicit user consent. Never put browser secrets in tool/model context.
+
+## Required boundaries
+
+Preserve the following behavior. Extending a supported schema, browser, or
+platform requires current source evidence and synthetic tests—not a permissive
+fallback when the current implementation rejects access.
 
 - Production loading is macOS only. `Chrome::system` constructs the documented
   Stable root from absolute HOME without filesystem inspection. Explicit roots,
@@ -54,7 +71,7 @@
   enforce HTTPS X-only routing and Viewer identity checks. The requested header
   API exposes zeroizing values, whose own Debug is NOT redacted: never log them.
 
-## Practical limits / deviations
+## Limits that must remain explicit
 
 Containment preflight plus NOFOLLOW is not a sandbox against another same-user
 process concurrently replacing intermediate directories or SQLite sidecars.
@@ -76,3 +93,36 @@ schema rejection, digest/padding/format errors, ambiguity, partitioning, expiry,
 minimal/redacted session API, read-only WAL visibility and coherent snapshots.
 No test calls the production Keychain reader, `Chrome::system`, real browser
 profiles or auth endpoints. Storage decoding does not prove live authentication.
+
+## Change-review checklist
+
+- [ ] Consent and profile validation precede filesystem or Keychain access.
+- [ ] Discovery remains metadata-only and never infers a logged-in X identity.
+- [ ] Cookie selection stays minimal, domain-coherent and unambiguous; unknown
+      storage/protection fails closed without trying another profile.
+- [ ] Tests cover the changed success path and rejection paths using only
+      synthetic databases, keys and sessions. Include WAL/schema consistency,
+      host-digest/padding, partition/expiry and OS-denial cases when relevant.
+- [ ] No secrets can appear in Debug, errors, logs, fixtures or test failures.
+      Zeroizing header values are still printable: never log them.
+- [ ] No browser-session changes, permission changes, key creation/reset,
+      database export, decryption bypass or public-provider credential exposure.
+- [ ] The provider integration still verifies the live stable X identity before
+      account-specific reads or authenticated cache access. Decryption is not
+      identity verification.
+- [ ] Update source evidence and documented limitations when assumptions change;
+      distinguish synthetic validation from separately consented live results.
+
+Run from the repository root:
+
+```sh
+cargo test credentials::
+cargo test
+cargo fmt --all -- --check
+cargo clippy --all-targets --all-features -- -D warnings
+RUSTDOCFLAGS='-D warnings' cargo doc --no-deps
+aislop ci
+```
+
+The aislop CI gate is 90; do not lower it or weaken security checks to make a
+change pass.

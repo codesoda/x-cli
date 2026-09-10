@@ -116,7 +116,7 @@ impl Chrome {
         // SQLite may open sidecars itself. Reject existing symlinks and special
         // files, not just a symlink on the main DB. NOFOLLOW also protects the
         // final main-file open. Same-user concurrent directory replacement is
-        // not an OS sandbox boundary; see README.md for this limitation.
+        // not an OS sandbox boundary; see AGENTS.md for this limitation.
         for suffix in ["-wal", "-shm", "-journal"] {
             let mut name = path.as_os_str().to_os_string();
             name.push(suffix);
