@@ -1,0 +1,104 @@
+{
+  "release": "v0.1.1",
+  "commit": "77a97e3196d51261504e0429f7224ee2f51f6ec0",
+  "release_url": "https://github.com/codesoda/x-cli/releases/tag/v0.1.1",
+  "repository_visibility": "private",
+  "workflow_url": "https://github.com/codesoda/x-cli/actions/runs/34540909288",
+  "published_at": "2026-09-10T23:18:14Z",
+  "artifacts": {
+    "aarch64-apple-darwin": {
+      "archive": "xcli-v0.1.1-aarch64-apple-darwin.tar.gz",
+      "archive_sha256": "a777bdaff2ed70eee70fd108d11c893c9d30c42ba781d697e977376721428826",
+      "binary_sha256": "7754c1833e8168126fff35eb3fc4477a5a9e60c493ec8489ce141571d16fa206"
+    },
+    "x86_64-apple-darwin": {
+      "archive": "xcli-v0.1.1-x86_64-apple-darwin.tar.gz",
+      "archive_sha256": "b0270d317ab857312383bcdccd506431e0078414a319892d57f7bece15b324e9",
+      "binary_sha256": "c26b04825f8569a5196b370010f6c9d87e37dccef976fc6ce338d24889857f3a"
+    }
+  },
+  "runs": [
+    {
+      "sha256": "7754c1833e8168126fff35eb3fc4477a5a9e60c493ec8489ce141571d16fa206",
+      "version": "xcli 0.1.1",
+      "started_at": 1789082366,
+      "finished_at": 1789082376,
+      "backend": "fxtwitter",
+      "browser_access": false,
+      "checks_passed": [
+        "installed_version",
+        "read_id_json",
+        "read_x_url_cache_hit",
+        "read_twitter_url_cache_hit",
+        "human_output",
+        "no_cache_read",
+        "refresh_read",
+        "zero_ttl_read",
+        "root_thread",
+        "bounded_parent_chain",
+        "complete_parent_chain",
+        "invalid_url_rejected",
+        "public_account_combination_rejected",
+        "local_doctor",
+        "cache_purge",
+        "fresh_read_after_purge"
+      ],
+      "platform": "macOS 26.2 arm64 (local)"
+    },
+    {
+      "sha256": "7754c1833e8168126fff35eb3fc4477a5a9e60c493ec8489ce141571d16fa206",
+      "version": "xcli 0.1.1",
+      "started_at": 1789082308,
+      "finished_at": 1789082310,
+      "backend": "fxtwitter",
+      "browser_access": false,
+      "checks_passed": [
+        "installed_version",
+        "read_id_json",
+        "read_x_url_cache_hit",
+        "read_twitter_url_cache_hit",
+        "human_output",
+        "no_cache_read",
+        "refresh_read",
+        "zero_ttl_read",
+        "root_thread",
+        "bounded_parent_chain",
+        "complete_parent_chain",
+        "invalid_url_rejected",
+        "public_account_combination_rejected",
+        "local_doctor",
+        "cache_purge",
+        "fresh_read_after_purge"
+      ],
+      "platform": "macos-15 arm64 (GitHub)"
+    },
+    {
+      "sha256": "c26b04825f8569a5196b370010f6c9d87e37dccef976fc6ce338d24889857f3a",
+      "version": "xcli 0.1.1",
+      "started_at": 1789082308,
+      "finished_at": 1789082311,
+      "backend": "fxtwitter",
+      "browser_access": false,
+      "checks_passed": [
+        "installed_version",
+        "read_id_json",
+        "read_x_url_cache_hit",
+        "read_twitter_url_cache_hit",
+        "human_output",
+        "no_cache_read",
+        "refresh_read",
+        "zero_ttl_read",
+        "root_thread",
+        "bounded_parent_chain",
+        "complete_parent_chain",
+        "invalid_url_rejected",
+        "public_account_combination_rejected",
+        "local_doctor",
+        "cache_purge",
+        "fresh_read_after_purge"
+      ],
+      "platform": "macos-15-intel (GitHub)"
+    }
+  ],
+  "latest_auto_install": "Passed: selected v0.1.1; installed SHA equals verified arm64 binary; live public read 20 passed"
+}

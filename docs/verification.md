@@ -18,7 +18,8 @@ Executed locally on macOS arm64, 2026-09-10. Stable compiler: Rust 1.95.0; decla
 | Installer safety checks | Three offline tests covering curl/gh/auto installation and checksum/manifest/archive/version rejection passed; `shellcheck install.sh` passed |
 | Explicit public X manifest/hash test | Passed, no authenticated query |
 | Real Chrome/Keychain and authenticated GraphQL | User-reported post/parent/reply smoke stages passed; search HTTP 404 confirmed, header correction awaiting retry; timeline not reached. No browser/Keychain access by the agent |
-| GitHub-hosted CI / release publishing | v0.1.0 build, CI, quality and publication passed; anonymous downloads failed because the repository is private. Authenticated installer patch and final v0.1.1 proof tracked in public-release.md |
+| GitHub-hosted CI / release publishing | v0.1.1 release run 34540909288 passed every job, including native downloaded-install verification on Apple Silicon and Intel |
+| Downloaded release works locally | Published v0.1.1 installer downloaded, binary installed into isolated directory, all 16 public checks passed; hashes matched GitHub assets. Latest/auto installation also passed. See public-release.md |
 
 After splitting app orchestration and extracting cache/config/state/credential/provider tests, three additional app regression tests verify validation-before-access, local account dispatch and cooldown enforcement. All extracted test coverage is retained.
 

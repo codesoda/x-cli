@@ -44,7 +44,7 @@ and fake curl/uname commands into child processes, with no network access. They
 cover checksum, manifest, archive and version rejection without replacing an
 existing installation. They do not substitute for downloading the real release.
 
-## Evidence so far
+## Completion audit — verified 2026-09-10
 
 - Local source binary on macOS arm64: all 16 verifier checks passed against live
   FxTwitter on 2026-09-10. The nontrivial parent IDs were obtained from the public
@@ -52,7 +52,43 @@ existing installation. They do not substitute for downloading the real release.
 - `v0.1.0` published successfully, but both post-download jobs failed at anonymous
   installer download with HTTP 404. Inspection confirmed the repository is private.
   This is a real installer defect for this repository, not successful verification.
-- `v0.1.1` adds authenticated `gh release download` support and tests it with fake
-  offline tools. Repository visibility is unchanged. Final downloaded-install
-  evidence remains pending until the patch release and post-download checks pass.
-  Do not treat the checklist above as proof that they have run.
+- **`v0.1.1` is published**, not a draft or prerelease:
+  https://github.com/codesoda/x-cli/releases/tag/v0.1.1 . Repository visibility
+  remains private; authenticated GitHub access is required for downloads.
+- Tag commit: `77a97e3196d51261504e0429f7224ee2f51f6ec0`, merged through
+  [PR #3](https://github.com/codesoda/x-cli/pull/3), following the initial
+  [PR #2](https://github.com/codesoda/x-cli/pull/2).
+- [Release run 34540909288](https://github.com/codesoda/x-cli/actions/runs/34540909288)
+  passed every job: tag/notes validation, reusable CI and aislop gates, native
+  release builds/tests, publication, and both post-publication download/install/
+  public-read verification jobs. The installer/binaries were downloaded from
+  the release, not reused from build outputs.
+- Both native runners passed **all 16** verifier checks on installed binaries.
+  The published installer was also independently downloaded and run locally on
+  macOS 26.2 arm64, followed by the same 16 live checks. No browser/Keychain access.
+- All three release-file checksums (both archives and installer) matched the
+  downloaded manifest. Archive hashes also matched GitHub's asset digests.
+  Extracted executable hashes matched the installed binary and the corresponding
+  native verifier reports, establishing that the tested binaries are the shipped
+  assets. Each archive contained only the expected `xcli` member.
+- The unpinned latest/auto installer path was additionally exercised locally. It
+  selected v0.1.1, installed the same arm64 binary hash, and passed a live read of
+  post 20.
+
+Persistent hashes, execution timestamps, platform labels and all check names are
+in [public-release-evidence.json](public-release-evidence.json). The source verifier
+was reviewed to ensure each check actually asserts the required behavior; its
+report alone was not treated as proof. No read-path failures, checksum mismatches,
+missing artifacts or untested advertised macOS architecture remain for this
+public-read release contract.
+
+### Shipped binary identities
+
+| Architecture | Archive SHA-256 | Installed executable SHA-256 |
+| --- | --- | --- |
+| Apple Silicon | `a777bdaff2ed70eee70fd108d11c893c9d30c42ba781d697e977376721428826` | `7754c1833e8168126fff35eb3fc4477a5a9e60c493ec8489ce141571d16fa206` |
+| Intel | `b0270d317ab857312383bcdccd506431e0078414a319892d57f7bece15b324e9` | `c26b04825f8569a5196b370010f6c9d87e37dccef976fc6ce338d24889857f3a` |
+
+Limits remain explicit: future FxTwitter availability is not guaranteed;
+authenticated search is still known to fail in the observed account, and no
+claim is made here about authenticated timelines or complete reply trees.
