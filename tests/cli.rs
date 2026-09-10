@@ -122,20 +122,3 @@ fn executable_invalid_url() {
     assert_eq!(out.status.code(), Some(2));
     assert!(out.stdout.is_empty());
 }
-
-/// Explicit opt-in only: `cargo test --test cli live_public -- --ignored`.
-#[test]
-#[ignore = "contacts FxTwitter; no credentials"]
-fn live_public() {
-    let root = tempfile::tempdir().unwrap();
-    let out = binary(&[
-        "--data-dir",
-        root.path().canonicalize().unwrap().to_str().unwrap(),
-        "read",
-        "20",
-        "--no-cache",
-    ]);
-    assert!(out.status.success());
-    let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
-    assert_eq!(v["posts"][0]["id"], "20");
-}

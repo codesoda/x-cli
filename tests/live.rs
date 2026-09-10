@@ -1,0 +1,250 @@
+//! Local opt-in smoke tests. Never print captured payloads, session material or headers.
+//! See docs/live-verification.md; enabling the feature alone performs no live work.
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+};
+use xcli::{
+    config::Config, credentials::Session, model::Output, providers::graphql::Graphql,
+    transport::Http,
+};
+
+fn permit(
+    ci: bool,
+    live: Option<&str>,
+    auth: Option<&str>,
+    needs_auth: bool,
+) -> Result<(), &'static str> {
+    if ci {
+        return Err("Live tests refuse CI execution");
+    }
+    if live != Some("1") {
+        return Err("Set XCLI_LIVE=1 to opt into local network tests");
+    }
+    if needs_auth && auth != Some("1") {
+        return Err(
+            "Set XCLI_LIVE_AUTH=1 to consent to local browser-session loading and authenticated reads",
+        );
+    }
+    Ok(())
+}
+fn require_opt_in(auth: bool) {
+    let ci = [
+        "CI",
+        "GITHUB_ACTIONS",
+        "GITLAB_CI",
+        "TF_BUILD",
+        "JENKINS_URL",
+        "BUILDKITE",
+    ]
+    .iter()
+    .any(|name| std::env::var_os(name).is_some());
+    let live = std::env::var("XCLI_LIVE").ok();
+    let consent = std::env::var("XCLI_LIVE_AUTH").ok();
+    permit(ci, live.as_deref(), consent.as_deref(), auth)
+        .unwrap_or_else(|message| panic!("{message}"));
+}
+fn root() -> PathBuf {
+    std::env::var_os("XCLI_LIVE_DATA_DIR")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".xcli")))
+        .expect("Set XCLI_LIVE_DATA_DIR when HOME is unavailable")
+}
+struct PublicAssetTransport(Http);
+impl xcli::transport::Transport for PublicAssetTransport {
+    fn get(
+        &self,
+        request: xcli::transport::Request,
+    ) -> xcli::error::Result<xcli::transport::Response> {
+        if !request.headers.is_empty() || request.url != xcli::providers::operations::BUNDLE_URL {
+            return Err(xcli::error::Error::new(
+                xcli::error::Kind::Unsupported,
+                "Public asset test refused a credential-bearing or unexpected request",
+            ));
+        }
+        self.0.get(request)
+    }
+}
+fn required(name: &str) -> String {
+    std::env::var(name)
+        .ok()
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| {
+            panic!("Set {name} explicitly; no account/profile is selected automatically")
+        })
+}
+fn run(root: &Path, args: &[&str], stage: &str) -> Output {
+    let result = Command::new(env!("CARGO_BIN_EXE_xcli"))
+        .arg("--data-dir")
+        .arg(root)
+        .args(args)
+        .arg("--no-cache")
+        .output()
+        .unwrap_or_else(|_| panic!("{stage}: cannot launch xcli"));
+    assert!(
+        matches!(result.status.code(), Some(0 | 12)),
+        "{stage}: xcli failed with exit {:?}; payload and stderr withheld",
+        result.status.code()
+    );
+    let output: Output = serde_json::from_slice(&result.stdout)
+        .unwrap_or_else(|_| panic!("{stage}: invalid normalized output; payload withheld"));
+    assert!(
+        !output.request_failed,
+        "{stage}: a request failed within the partial result; payload withheld"
+    );
+    assert!(
+        output.provenance.cache == "miss",
+        "{stage}: expected an upstream read"
+    );
+    assert!(
+        output
+            .next_cursor
+            .as_ref()
+            .is_none_or(|cursor| !cursor.is_empty())
+    );
+    output
+}
+
+#[test]
+fn live_guards_are_fail_closed() {
+    for auth in [false, true] {
+        assert!(permit(true, Some("1"), Some("1"), auth).is_err());
+        assert!(permit(false, None, Some("1"), auth).is_err());
+    }
+    assert!(permit(false, Some("1"), None, true).is_err());
+    assert!(permit(false, Some("1"), Some("0"), true).is_err());
+    assert!(permit(false, Some("1"), None, false).is_ok());
+    assert!(permit(false, Some("1"), Some("1"), true).is_ok());
+}
+
+#[test]
+#[ignore = "local public network test; requires XCLI_LIVE=1"]
+fn public_post_and_parent_chain() {
+    require_opt_in(false);
+    let root = root();
+    let post = run(
+        &root,
+        &["read", "20", "--backend", "fxtwitter"],
+        "public post",
+    );
+    assert!(post.complete && post.posts.len() == 1 && post.posts[0].id == "20");
+    assert!(post.provenance.backend == "fxtwitter" && post.provenance.account_id.is_none());
+    let chain = run(
+        &root,
+        &[
+            "thread",
+            "20",
+            "--backend",
+            "fxtwitter",
+            "--max-parents",
+            "1",
+        ],
+        "public parents",
+    );
+    assert!(chain.parent_chain_complete == Some(true) && chain.complete);
+    assert!(chain.posts.len() == 1 && chain.posts[0].id == "20");
+}
+
+#[test]
+#[ignore = "local public asset test; requires XCLI_LIVE=1; no authenticated query"]
+fn public_manifest() {
+    require_opt_in(false);
+    let transport = PublicAssetTransport(Http::new().expect("Cannot construct HTTPS transport"));
+    // Synthetic session is never used: construction fetches only the credential-free asset.
+    let session = Session::new("synthetic-auth".into(), "synthetic-csrf".into()).unwrap();
+    assert!(
+        Graphql::new(&transport, &session).is_ok(),
+        "Pinned public manifest unavailable or changed"
+    );
+}
+
+#[test]
+#[ignore = "local authenticated test; requires consent and explicit registered account/profile"]
+fn authenticated_read_smoke() {
+    require_opt_in(true);
+    // Capability check only; constructing Chrome does not inspect its profile or Keychain.
+    xcli::credentials::Chrome::system()
+        .expect("Authenticated smoke test requires macOS Chrome support");
+    let account = required("XCLI_LIVE_ACCOUNT");
+    let profile = required("XCLI_LIVE_PROFILE");
+    let root = root();
+    let config = Config::load(&root).expect("Cannot load local account configuration");
+    let explicit_connection = std::env::var("XCLI_LIVE_CONNECTION").ok();
+    let connection = config.resolve(Some(&account), explicit_connection.as_deref())
+        .expect("Connect the requested account first; select a preference or explicit connection if ambiguous");
+    assert!(
+        connection.profile == profile,
+        "Selected connection does not match XCLI_LIVE_PROFILE; no credentials loaded"
+    );
+    let expected_id = &connection.identity.id;
+    // One sequential test: stop immediately on failure/rate limit, never rotate accounts.
+    // Existing state is retained so cooldowns survive test failures and subsequent runs.
+    for (stage, operation) in [
+        ("authenticated post", vec!["read", "20"]),
+        (
+            "authenticated parents",
+            vec!["thread", "20", "--max-parents", "1"],
+        ),
+        (
+            "authenticated replies",
+            vec![
+                "thread",
+                "20",
+                "--replies",
+                "--max-parents",
+                "1",
+                "--max-pages",
+                "2",
+            ],
+        ),
+        (
+            "authenticated search",
+            vec![
+                "search",
+                "from:jack",
+                "--max-pages",
+                "2",
+                "--page-size",
+                "5",
+            ],
+        ),
+        (
+            "authenticated timeline",
+            vec![
+                "user",
+                "posts",
+                "jack",
+                "--max-pages",
+                "2",
+                "--page-size",
+                "5",
+            ],
+        ),
+    ] {
+        let mut args = operation;
+        args.extend(["--account", &account, "--connection", &connection.id]);
+        let output = run(&root, &args, stage);
+        assert!(output.provenance.backend == "graphql");
+        assert!(
+            output.provenance.account_id.as_ref() == Some(expected_id),
+            "Account provenance mismatch; values withheld"
+        );
+        let max_pages = match stage {
+            "authenticated replies" => 3,
+            "authenticated search" | "authenticated timeline" => 2,
+            _ => 1,
+        };
+        assert!(
+            output.pages > 0 && output.pages <= max_pages,
+            "Unexpected pagination bound"
+        );
+        if matches!(stage, "authenticated post" | "authenticated parents") {
+            assert!(output.complete && output.posts.len() == 1 && output.posts[0].id == "20");
+        } else {
+            assert!(
+                !output.complete,
+                "Collection must not claim exhaustive completeness"
+            );
+        }
+    }
+}

@@ -64,17 +64,6 @@ fn injected_identity_query_and_http_failures() {
         assert!(!format!("{error:?}").contains("SYNTHETIC_SECRET"));
     }
 }
-/// Fetches only the pinned public asset, without session headers or X queries.
-#[test]
-#[ignore = "opt-in public web-client asset check; no authenticated requests"]
-fn live_public_manifest() {
-    let transport = crate::transport::Http::new().unwrap();
-    let session = Session::new("synthetic-auth".into(), "synthetic-csrf".into()).unwrap();
-    assert!(
-        Graphql::new(&transport, &session).is_ok(),
-        "Pinned public manifest unavailable or changed"
-    );
-}
 fn tweet() -> Value {
     json!({"__typename":"Tweet","rest_id":"20","core":{"user_results":{"result":{"__typename":"User","rest_id":"12","core":{"screen_name":"jack"}}}},"legacy":{"full_text":"short"},"note_tweet":{"note_tweet_results":{"result":{"text":"long"}}}})
 }

@@ -199,7 +199,7 @@ Posting and DMs remain outside the roadmap.
 
 ## Contributing
 
-Open an issue or submit a focused pull request. See [Development](docs/development.md) and [Implementation plan](docs/implementation-plan.md). Aislop's generated default configuration is committed at `.aislop/config.yml`, with the CI gate raised to 90; default engines and telemetry settings remain unchanged. Run `aislop scan` or `aislop ci`; Rust checks remain mandatory alongside it. Normal tests must never inspect real browser profiles, use Keychain, or require credentials. Live tests must be explicitly selected and read-only. Never attach secret-bearing fixtures or raw authenticated logs to issues.
+Open an issue or submit a focused pull request. See [Development](docs/development.md) and [Implementation plan](docs/implementation-plan.md). Aislop's generated default configuration is committed at `.aislop/config.yml`, with the CI gate raised to 95; default engines and telemetry settings remain unchanged. Run `aislop scan` or `aislop ci`; Rust checks remain mandatory alongside it. Normal tests must never inspect real browser profiles, use Keychain, or require credentials. Live integration tests live in `tests/live.rs`, gated by `--features live-tests`, `#[ignore]`, and explicit runtime opt-ins; they refuse CI execution. See the [local live-test guide](docs/live-verification.md). Live tests must be explicitly selected and read-only. Never attach secret-bearing fixtures or raw authenticated logs to issues.
 
 Project contact: [codesoda/x-cli issues](https://github.com/codesoda/x-cli/issues).
 

@@ -7,6 +7,15 @@ description = "Read-only X/Twitter CLI with explicit browser-profile accounts"
 repository = "https://github.com/codesoda/x-cli"
 publish = false
 
+[features]
+default = []
+live-tests = []
+
+[[test]]
+name = "live"
+path = "tests/live.rs"
+required-features = ["live-tests"]
+
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }

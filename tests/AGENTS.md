@@ -25,7 +25,12 @@ The same rules apply when adding inline unit tests in `src/`.
 
 ## Live tests are separate
 
-Keep network tests explicitly ignored/opt-in. Never add `--ignored` to normal CI
+Keep network/browser tests in `tests/live.rs`, behind the `live-tests` feature,
+individually ignored, and guarded by explicit runtime opt-ins plus CI refusal.
+Feature-enabled normal tests must remain offline. Authenticated tests must use
+an explicitly registered account/profile, preserve cooldowns, stop on failure
+and discard captured payloads without printing them.
+Never add `--ignored` to normal CI
 or treat permission to run the offline suite as permission to access a browser.
 Authenticated testing needs explicit consent and a named user-controlled profile;
 follow [../docs/live-verification.md](../docs/live-verification.md). Do not switch
