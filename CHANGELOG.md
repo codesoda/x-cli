@@ -17,6 +17,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Generated aislop project configuration and GitHub Actions quality gate, raised to 90; otherwise default settings, with no disabled rules.
 - Per-scope bounded cache files, purge controls, persisted cooldowns, explicit local connection removal/renaming/preferences, and parent/reply completeness metadata.
 
+### Changed
+
+- Split app dispatch, account commands, read-task validation and retrieval into focused modules; separate Unix state storage from its public facade.
+- Extract substantial credential, GraphQL, cache, config and state unit tests into private child-module files, preserving coverage and adding app dispatch/cooldown regression tests.
+
 ### Known limitations
 
 - Phase 1 is experimental. Authenticated X interoperability and real Chrome/Keychain compatibility remain unverified; source research and mocked tests do not establish that live authentication works.

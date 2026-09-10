@@ -45,7 +45,9 @@ Directory-specific checklists live in
 ## Architecture and invariants
 
 - `src/main.rs`: thin entry point, safe output and exit-code mapping.
-- `src/cli.rs` / `src/app.rs`: argument definitions and capability-aware routing.
+- `src/cli.rs` / `src/app.rs`: argument definitions and top-level dispatch.
+  `src/app/auth.rs` handles account commands; `task.rs` validates read tasks and
+  cache keys; `retrieval.rs` handles capability-aware provider/cache orchestration.
   Keep incompatible flags as errors; never silently ignore an account selector.
 - `src/model.rs`: normalized data, string IDs, provenance/freshness and explicit
   completeness. `src/error.rs`: reviewed static errors, never raw upstream bodies.
@@ -58,7 +60,8 @@ Directory-specific checklists live in
 - `src/config.rs`: locally unique aliases, explicit `@handle` semantics, stable-ID
   identity pins. Preserve ambiguity checks for multiple connections; require a
   preference or explicit connection. Use transactional updates for CLI changes.
-- `src/cache.rs` / `src/state.rs`: authenticated scopes physically separate from
+- `src/cache.rs` / `src/state.rs` (Unix implementation in `src/state/unix.rs`):
+  authenticated scopes physically separate from
   public/other-account caches. Verify identity before authenticated cache hits.
   Preserve bounded storage, private permissions, atomic descriptor-relative
   writes, symlink/hardlink checks and persisted cooldowns. Purge content without
@@ -66,6 +69,11 @@ Directory-specific checklists live in
 - `src/pagination.rs`: bound requests, detect repeated cursors, retain partial
   results on later failure, and never infer exhaustive collections from cursor
   exhaustion. Failed requests are not empty successes or fresh cache entries.
+
+Keep modules focused and aim for fewer than 400 lines per file. Move substantial
+inline test modules to `<module>/tests.rs` as private `#[cfg(test)]` child modules;
+when production code is too large, split by responsibility instead of compressing
+formatting or widening APIs just for tests.
 
 ## Verification checklist
 
