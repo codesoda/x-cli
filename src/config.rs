@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, path::Path};
 
 /// Reviewed public-provider origin; arbitrary credential destinations are not configurable.
+// aislop-ignore-next-line ai-slop/hardcoded-url -- Canonical public API origin, intentionally fixed rather than deployment-specific.
 pub const FXTWITTER_API_ORIGIN: &str = "https://api.fxtwitter.com";
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

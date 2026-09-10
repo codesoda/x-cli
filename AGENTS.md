@@ -91,8 +91,8 @@ aislop ci
 ```
 
 - Normal tests are offline and synthetic. Never run ignored/live tests implicitly.
-- Aislop gate is **90**, otherwise generated defaults. Do not suppress findings
-  or lower thresholds to conceal defects. Document justified advisory findings.
+- Aislop gate is **95**, otherwise generated defaults. Never add ignore remarks
+  unless explicitly instructed by the user. Do not lower thresholds to conceal defects.
 - For workflow changes, run `actionlint .github/workflows/*.yml`.
 - Update README/CHANGELOG and relevant protocol/security documentation when
   behavior changes. Report checks actually run, skipped live verification and

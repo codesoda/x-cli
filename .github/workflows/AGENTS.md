@@ -9,7 +9,7 @@ not edit that other repository as part of changes here.
 - [ ] Preserve stable macOS/Ubuntu checks and Rust **1.88** MSRV coverage.
 - [ ] Preserve warnings-denied formatting → Clippy → build → test → rustdoc
       validation, committed lockfile use, and no live/ignored credential tests.
-- [ ] Aislop reads `.aislop/config.yml`: gate **90**, otherwise default settings.
+- [ ] Aislop reads `.aislop/config.yml`: gate **95**, otherwise default settings.
       Do not lower the gate or silently drop a failing check.
 - [ ] Reusable CI checks the exact supplied commit, not a moving branch head.
 - [ ] Checkout tokens remain read-only/nonpersistent where possible. Restrict

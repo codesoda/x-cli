@@ -124,5 +124,5 @@ RUSTDOCFLAGS='-D warnings' cargo doc --no-deps
 aislop ci
 ```
 
-The aislop CI gate is 90; do not lower it or weaken security checks to make a
+The aislop CI gate is 95; do not lower it or weaken security checks to make a
 change pass.
