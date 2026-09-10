@@ -26,6 +26,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Split app dispatch, account commands, read-task validation and retrieval into focused modules; separate Unix state storage from its public facade.
 - Extract substantial credential, GraphQL, cache, config and state unit tests into private child-module files, preserving coverage and adding app dispatch/cooldown regression tests.
 
+### Fixed
+
+- Align GraphQL GET requests with the reviewed X adapter's `Content-Type: application/json` header. The user-observed search HTTP 404 still needs a consented retry; no endpoint-ID or method fallback was introduced.
+
 ### Known limitations
 
 - Phase 1 is experimental. A user-run authenticated smoke test passed post, parent-chain and reply stages, then failed at search with exit 8; timeline was not reached. Full interoperability and broader Chrome/Keychain compatibility remain unverified.

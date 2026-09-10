@@ -63,6 +63,10 @@ impl<'a> Graphql<'a> {
         let mut headers = self.session.headers();
         headers.extend([
             (
+                "content-type".into(),
+                Zeroizing::new("application/json".into()),
+            ),
+            (
                 "authorization".into(),
                 Zeroizing::new(format!("Bearer {}", self.bearer.as_str())),
             ),

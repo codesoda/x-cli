@@ -143,6 +143,36 @@ X-main corroborates the top-level roots in the table and discriminates `Tweet`, 
 - Bottom cursor: entry `content.cursorType === "Bottom"`, opaque `content.value`; support module/show-more and replacement instructions after fixture verification rather than only Bird's `entries[]` loop. Preserve ordering, deduplicate by stable ID, bound pages, detect repeated cursors, and report retained partial results on later failure.
 - GraphQL HTTP 200 can contain errors and data together. Missing expected roots is schema drift/error, not necessarily “zero results.” Same-conversation membership and sorted timestamps do not prove a full thread or reconstruct parent edges.
 
+### Follow-up: user-observed SearchTimeline HTTP 404
+
+After the user reported HTTP 404 from the authenticated search command, public
+sources were re-fetched without cookies, browser access or authenticated calls:
+
+- `/explore` still advertises X-main above, whose SHA-256 is unchanged.
+  `SearchTimeline` remains query ID `KPSo2_UWdOMpPJwjhfT1Qg`, type `query`.
+  `fetchSearchGraphQL` calls the normal GraphQL adapter without `forcePost`.
+- The adapter explicitly supplies **`content-type: application/json` on GET**.
+  xcli omitted that header; it has now been aligned with the source contract.
+  This discrepancy is established, but is **not yet proven to cause the 404**.
+- [Vendor bundle](https://abs.twimg.com/responsive-web/client-web/vendor.588f26613fb657c8a.js),
+  SHA-256 `121fd93d17747b914c5593917e14cc2c2f12e6849f7ebd4ac8589afdedcd6ad9`,
+  supplies module `812055` as an empty object. Thus the shared-variable helper
+  inspected earlier does not add missing search variables in this snapshot.
+- [Logged-in API filters](https://abs.twimg.com/responsive-web/client-web/bundle.LoggedInApiFilters.31c5a6f3d43634eea.js),
+  SHA-256 `91add1aa282df4773696c495afbba785a3671c1ea5e8129a5a607b1d31e6725c`,
+  contain no SearchTimeline GET-to-POST rewrite. The inspected session-binding
+  operation allowlist does not include SearchTimeline; its presence elsewhere
+  is not evidence that search requires those signing operations.
+
+The query ID and GET-only routing are unchanged. No old-ID fallback, POST probe,
+transaction-ID fabrication, other-account attempt or public-content fallback
+was added. HTTP 404 alone does not establish whether an operation was removed,
+a request contract was rejected, or account/client policy obscured the endpoint.
+A consented local retry is needed to assess the corrected header. If 404 remains,
+compare only the successful browser request's method and operation path (not
+cookies, headers, query variables, a HAR, or a copied cURL command) before changing
+transport or IDs.
+
 ## 3. macOS Chrome credential access: supported boundary
 
 First-party source snapshot: Chromium **`233e625e16284f1f1e11150b88ea16e43c325c37`**, inspected 2026-09-10. This is mainline source, **not a verified installed/released Chrome build**:

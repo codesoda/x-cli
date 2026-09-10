@@ -111,8 +111,13 @@ agent testing or broad platform compatibility.
 
 The original test withheld all stderr, so the search failure did not distinguish
 HTTP rejection, GraphQL errors, a missing response root or a parser mismatch.
-Fixed-label diagnostics now expose that distinction without exposing payloads;
-no protocol behavior has been relaxed or speculative fix applied.
+Fixed-label diagnostics now expose that distinction without exposing payloads.
+The user's isolated retry confirmed **HTTP 404**, before response parsing. Public
+source reinspection found the same query ID and GET method, but showed that
+xcli omitted the adapter's `Content-Type: application/json` header. That header
+is now sent and covered by a mocked search-request test. It is not yet known
+whether the correction resolves the user's 404. No parser rules, account
+boundaries, operation IDs or method allowlists have been relaxed.
 
 To isolate search without repeating the passed stages, run locally:
 

@@ -65,6 +65,47 @@ fn injected_identity_query_and_http_failures() {
     }
 }
 #[test]
+fn search_request_matches_reviewed_get_contract() {
+    struct Search;
+    impl Transport for Search {
+        fn get(&self, request: Request) -> Result<crate::transport::Response> {
+            let url = url::Url::parse(&request.url).unwrap();
+            assert_eq!(url.host_str(), Some("x.com"));
+            assert_eq!(
+                url.path(),
+                "/i/api/graphql/KPSo2_UWdOMpPJwjhfT1Qg/SearchTimeline"
+            );
+            let content_type = request
+                .headers
+                .iter()
+                .find(|(name, _)| name == "content-type");
+            assert!(content_type.is_some_and(|(_, value)| value.as_str() == "application/json"));
+            let parameters: std::collections::HashMap<_, _> = url.query_pairs().collect();
+            let variables: Value = serde_json::from_str(&parameters["variables"]).unwrap();
+            assert_eq!(
+                variables,
+                json!({"rawQuery":"from:jack","count":5,"querySource":"typed_query","product":"Latest","withGrokTranslatedBio":false,"withQuickPromoteEligibilityTweetFields":false})
+            );
+            assert!(parameters.contains_key("features"));
+            Ok(crate::transport::Response { status:200, retry_after:None,
+                body:serde_json::to_vec(&json!({"data":{"search_by_raw_query":{"search_timeline":{"timeline":{"instructions":[{"type":"TimelineAddEntries","entries":[]}]}}}}})).unwrap() })
+        }
+    }
+    let session = Session::new("synthetic-auth".into(), "synthetic-csrf".into()).unwrap();
+    let graph = Graphql {
+        transport: &Search,
+        session: &session,
+        bearer: Zeroizing::new("synthetic-public-token".into()),
+    };
+    assert!(
+        graph
+            .page(Operation::Search, "from:jack", 5, None)
+            .unwrap()
+            .posts
+            .is_empty()
+    );
+}
+#[test]
 fn query_failures_identify_http_errors_and_missing_roots() {
     let session = Session::new("synthetic-auth".into(), "synthetic-csrf".into()).unwrap();
     for (status, body, expected) in [
