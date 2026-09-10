@@ -37,11 +37,29 @@ Modules separate CLI routing, normalized models, providers, credential loading, 
 
 ### Prerequisites
 
-- Rust 1.88 or newer, Cargo, and a native compiler toolchain.
+- macOS on Apple Silicon or Intel for prebuilt release binaries; no Rust installation required.
+- Rust 1.88 or newer, Cargo, and a native compiler toolchain only when building from source.
 - Internet access for upstream reads.
 - **macOS + Chrome Stable** for browser-backed authentication. Other platforms can build the public CLI but cannot connect Chrome accounts.
 
 ### Installation
+
+Install the latest [GitHub release](https://github.com/codesoda/x-cli/releases) on macOS:
+
+```sh
+curl -fsSL https://github.com/codesoda/x-cli/releases/latest/download/install.sh | sh
+~/.local/bin/xcli --version
+~/.local/bin/xcli read https://x.com/jack/status/20
+```
+
+The installer selects Apple Silicon/Intel, verifies the archive's SHA-256 checksum,
+checks the binary version, and installs atomically to `~/.local/bin/xcli` without
+sudo. Add `~/.local/bin` to PATH. To inspect before executing, download `install.sh`
+from the release page and run it with `sh`. Set `XCLI_VERSION=v0.1.0` to pin a
+release or `XCLI_INSTALL_DIR=/your/bin` to choose the destination. Archives and
+`checksums-sha256.txt` are also available for manual installation.
+
+Build from source instead:
 
 ```sh
 git clone https://github.com/codesoda/x-cli.git
@@ -50,7 +68,10 @@ cargo install --path . --locked
 xcli --help
 ```
 
-The executable is `xcli`, normally installed into `~/.cargo/bin`. Release automation packages Apple Silicon and Intel macOS binaries with SHA-256 checksums. No release is published as part of this implementation; source installation is the supported starting point.
+Source installation places `xcli` in `~/.cargo/bin`. Release automation packages
+both macOS architectures, then downloads the published installer/binaries and
+runs explicit public read checks on each native platform. See
+[public release verification](docs/public-release.md) for evidence and scope.
 
 ## Usage
 

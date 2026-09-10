@@ -29,6 +29,10 @@ not edit that other repository as part of changes here.
 - [ ] Package `xcli-<tag>-<target>.tar.gz` with the executable at the archive root;
       publish `checksums-sha256.txt` and the validated changelog notes. Missing
       assets/notes must fail rather than produce a partial release.
+- [ ] After authorized publication, the dedicated `verify-installed` jobs download
+      the published installer/binaries and explicitly run credential-free public
+      smoke checks. This is separate from normal offline CI and never invokes
+      browser/Keychain tests. Preserve the evidence artifact for each architecture.
 - [ ] Do not create a tag, trigger publishing or release a binary as a smoke test.
       Publication requires an explicit maintainer request.
 

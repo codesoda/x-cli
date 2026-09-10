@@ -18,6 +18,7 @@ reports are evidence of what was done, not guarantees about current behavior.
 | [docs/implementation-plan.md](docs/implementation-plan.md) | Original Phase 1 sequence, assumptions, boundaries and initial public-API evidence. Consult for design intent or scope questions; check current code/README for actual status. |
 | [docs/protocol-research.md](docs/protocol-research.md) | Pinned X/Bird/Chromium provenance, query definitions, storage details, attempted alternatives and unresolved protocol questions. Read before changing provider or credential assumptions; obtain fresh evidence when upstream changes. |
 | [docs/live-verification.md](docs/live-verification.md) | Public checks performed, outstanding consent/profile requirements and a safe local authenticated test sequence. Read before proposing or performing live tests; the document itself is not consent. |
+| [docs/public-release.md](docs/public-release.md) | Public-read release contract, requirement-to-evidence checklist, live verifier and downloaded-install evidence. Consult before releasing or claiming the shipped binary works. |
 | [docs/verification.md](docs/verification.md) | Recorded implementation-check results and skipped verification. Consult when reporting prior evidence; rerun relevant checks rather than treating historical passes as current ones. |
 | [docs/phase-2.md](docs/phase-2.md) | Preserved future list/bookmark/like/follow scope, proposed commands and mutation safeguards, linked to issue #1. Consult for roadmap boundaries, not authorization to add mutations to Phase 1. |
 

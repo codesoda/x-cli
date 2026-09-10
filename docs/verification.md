@@ -5,16 +5,17 @@ Executed locally on macOS arm64, 2026-09-10. Stable compiler: Rust 1.95.0; decla
 | Check | Result |
 | --- | --- |
 | `cargo build` | Passed |
-| `cargo test` | 75 passed; feature-gated live target excluded |
-| `cargo test --locked --all-features` | 77 offline tests passed; 3 live cases ignored |
+| `cargo test` | 77 passed; feature-gated live target excluded |
+| `cargo test --locked --all-features` | 79 offline tests passed; 3 live cases ignored |
 | `cargo fmt --all -- --check` | Passed |
 | `cargo clippy --all-targets --all-features -- -D warnings` | Passed |
 | `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps` | Passed |
 | `cargo +1.88.0 build --locked` | Passed |
-| `cargo +1.88.0 test --locked --all-features` | 77 offline tests passed; 3 live cases ignored |
+| `cargo +1.88.0 test --locked --all-features` | 79 offline tests passed; 3 live cases ignored |
 | `actionlint .github/workflows/*.yml` | Passed |
 | `aislop ci` with gate 95 | Passed, 100/100; no findings |
-| Explicit FxTwitter public CLI test | Passed |
+| Explicit FxTwitter public CLI test | Passed; all 16 checks in the public release verifier also passed on the source binary |
+| Installer safety checks | Two offline tests covering successful install and checksum/manifest/archive/version rejection passed; `shellcheck install.sh` passed |
 | Explicit public X manifest/hash test | Passed, no authenticated query |
 | Real Chrome/Keychain and authenticated GraphQL | User-reported post/parent/reply smoke stages passed; search HTTP 404 confirmed, header correction awaiting retry; timeline not reached. No browser/Keychain access by the agent |
 | GitHub-hosted CI / release publishing | Not run; workflows validated locally, no release published |

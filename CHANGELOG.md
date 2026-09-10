@@ -6,8 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-10
+
+First public-read release. Authenticated functionality remains experimental; search is known to fail in the observed account and is not part of the verified public-read claim.
+
 ### Added
 
+- Checksum-verifying macOS release installer, with isolated offline installer tests and explicit post-publication download/install/public-read verification on Apple Silicon and Intel.
+- Repeatable public release verifier covering ID/URL reads, JSON/human output, real multi-post parent chains and limits, cache controls, routing rejection and local diagnostics.
 - Safe GraphQL failure diagnostics distinguish HTTP status, numeric upstream error codes, response roots and parser stages. Live tests forward only this typed metadata, never raw stderr or upstream messages.
 
 - Local live integration-test target behind the `live-tests` feature, with ignored public checks and a sequential authenticated read smoke test requiring separate consent and an existing account/profile. Runtime CI/opt-in guards keep normal tests offline.

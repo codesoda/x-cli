@@ -140,6 +140,20 @@ Assets contain the `xcli` executable at the tarball root:
 - `xcli-<tag>-aarch64-apple-darwin.tar.gz`
 - `xcli-<tag>-x86_64-apple-darwin.tar.gz`
 - `checksums-sha256.txt`
+- `install.sh` (checksum-verifying macOS release installer)
+
+The release also runs the reusable aislop gate on the exact tag commit. After
+publication, native macOS jobs download the published installer and binaries,
+install into isolated directories, and explicitly run
+`scripts/verify-public-release.py --live-public`. This release-only public
+network check is not part of normal CI or the locally gated authenticated suite.
+Its JSON evidence is uploaded per architecture. See [public-release.md](public-release.md).
+
+`install.sh` supports `XCLI_VERSION` (otherwise latest) and `XCLI_INSTALL_DIR`
+(otherwise `~/.local/bin`). It verifies the selected asset checksum, archive
+contents and executable version before replacing an installation. Installer
+regression tests are offline with synthetic executable archives and child-process
+tool injection; no system-wide installation occurs in tests.
 
 Only the publish job receives `contents: write`; the workflows default to read
 permission and checkout does not persist credentials. Release notes come from

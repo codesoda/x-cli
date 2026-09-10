@@ -4,12 +4,24 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_call:
+    inputs:
+      ref:
+        description: "Exact commit to check for a release"
+        required: true
+        type: string
+
+permissions:
+  contents: read
 
 jobs:
   quality-gate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
       - uses: scanaislop/aislop@v1
         with:
           version: latest

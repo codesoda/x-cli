@@ -90,9 +90,16 @@ jobs:
     with:
       ref: ${{ needs.validate.outputs.sha }}
 
+  quality:
+    name: Aislop gate for tagged commit
+    needs: validate
+    uses: ./.github/workflows/aislop.yml
+    with:
+      ref: ${{ needs.validate.outputs.sha }}
+
   build:
     name: build (${{ matrix.target }})
-    needs: [validate, checks]
+    needs: [validate, checks, quality]
     runs-on: ${{ matrix.runs_on }}
     strategy:
       fail-fast: false
@@ -169,11 +176,12 @@ jobs:
           name: release-notes
           path: dist
 
-      - name: Generate checksums
+      - name: Generate checksums and include installer
         run: |
+          cp install.sh dist/install.sh
           cd dist
           sha256sum "xcli-${RELEASE_TAG}-aarch64-apple-darwin.tar.gz" \
-            "xcli-${RELEASE_TAG}-x86_64-apple-darwin.tar.gz" > checksums-sha256.txt
+            "xcli-${RELEASE_TAG}-x86_64-apple-darwin.tar.gz" install.sh > checksums-sha256.txt
 
       - uses: softprops/action-gh-release@v2
         with:
@@ -183,4 +191,45 @@ jobs:
           files: |
             dist/xcli-*.tar.gz
             dist/checksums-sha256.txt
+            dist/install.sh
           fail_on_unmatched_files: true
+
+  verify-installed:
+    name: Download, install and verify (${{ matrix.os }})
+    needs: [validate, publish]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+          persist-credentials: false
+
+      - name: Download published installer and install published binary
+        env:
+          XCLI_VERSION: ${{ needs.validate.outputs.tag }}
+          XCLI_INSTALL_DIR: ${{ runner.temp }}/xcli-installed
+        run: |
+          curl --fail --silent --show-error --location --proto '=https' \
+            "https://github.com/codesoda/x-cli/releases/download/$XCLI_VERSION/install.sh" \
+            --output "$RUNNER_TEMP/xcli-install.sh"
+          sh "$RUNNER_TEMP/xcli-install.sh"
+          "$XCLI_INSTALL_DIR/xcli" --version
+
+      # Explicit release-only public network verification; never browser/Keychain tests.
+      - name: Verify installed public read functionality
+        env:
+          TAG: ${{ needs.validate.outputs.tag }}
+        run: |
+          python3 scripts/verify-public-release.py \
+            --binary "$RUNNER_TEMP/xcli-installed/xcli" \
+            --expect-version "${TAG#v}" --live-public > public-verification.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: public-verification-${{ matrix.os }}
+          path: public-verification.json
+          if-no-files-found: error
