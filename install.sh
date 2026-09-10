@@ -9,18 +9,32 @@ case "$(uname -m)" in
   x86_64) target=x86_64-apple-darwin ;;
   *) fail 'Unsupported architecture' ;;
 esac
-for tool in curl tar shasum mktemp; do
+for tool in tar shasum mktemp; do
   command -v "$tool" >/dev/null 2>&1 || fail "Required tool missing: $tool"
 done
-repo=https://github.com/codesoda/x-cli
+repository=codesoda/x-cli
+repo=https://github.com/$repository
+mode=${XCLI_DOWNLOAD_MODE:-auto}
+if [ "$mode" = auto ]; then
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then mode=gh; else mode=curl; fi
+fi
+case "$mode" in
+  gh) command -v gh >/dev/null 2>&1 || fail 'GitHub CLI is required for authenticated downloads' ;;
+  curl) command -v curl >/dev/null 2>&1 || fail 'curl is required for anonymous downloads' ;;
+  *) fail 'XCLI_DOWNLOAD_MODE must be auto, gh or curl' ;;
+esac
 fetch() {
   curl -q --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
     --connect-timeout 15 --max-time 120 "$@"
 }
 version=${XCLI_VERSION:-}
 if [ -z "$version" ]; then
-  latest=$(fetch --output /dev/null --write-out '%{url_effective}' "$repo/releases/latest")
-  version=${latest##*/}
+  if [ "$mode" = gh ]; then
+    version=$(gh release view --repo "$repository" --json tagName --jq .tagName)
+  else
+    latest=$(fetch --output /dev/null --write-out '%{url_effective}' "$repo/releases/latest") || fail 'Download failed; private repositories require gh auth login and XCLI_DOWNLOAD_MODE=gh'
+    version=${latest##*/}
+  fi
 fi
 printf '%s\n' "$version" | LC_ALL=C grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || fail 'Expected a version such as v0.1.0'
 prefix=${XCLI_INSTALL_DIR:-"${HOME:?HOME or XCLI_INSTALL_DIR must be set}/.local/bin"}
@@ -33,8 +47,14 @@ cleanup() {
 }
 trap cleanup EXIT
 trap 'exit 1' HUP INT TERM
-fetch --output "$work/$archive" "$repo/releases/download/$version/$archive"
-fetch --output "$work/checksums" "$repo/releases/download/$version/checksums-sha256.txt"
+if [ "$mode" = gh ]; then
+  gh release download "$version" --repo "$repository" --pattern "$archive" \
+    --pattern checksums-sha256.txt --dir "$work" || fail 'Authenticated release download failed'
+  mv "$work/checksums-sha256.txt" "$work/checksums"
+else
+  fetch --output "$work/$archive" "$repo/releases/download/$version/$archive" || fail 'Download failed; private repositories require XCLI_DOWNLOAD_MODE=gh'
+  fetch --output "$work/checksums" "$repo/releases/download/$version/checksums-sha256.txt"
+fi
 # Verify exactly the requested asset, never unrelated entries or paths from the manifest.
 awk -v asset="$archive" '
   $2 == asset || $2 == "*" asset {

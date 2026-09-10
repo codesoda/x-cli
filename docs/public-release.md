@@ -2,7 +2,7 @@
 
 ## Release contract
 
-Release `v0.1.0` must provide downloadable Apple Silicon and Intel macOS binaries,
+Release `v0.1.1` must provide downloadable Apple Silicon and Intel macOS binaries,
 a checksum manifest, an installer, and evidence that the **downloaded and installed**
 executables work. A source build or green unit suite alone is not completion.
 
@@ -21,7 +21,7 @@ account rotation or mutation is part of these release checks.
 | Prove root and nontrivial parent chains | Live chain `1903106713588568359` → `1903105387932295260` → `20`; assert parent edges, oldest-first ordering, root completeness, bounded partial exit 12 |
 | JSON, human output, provenance/freshness | Parse actual CLI JSON and human text; assert FxTwitter/public scope, retrieval timestamp, cache state and no request failure |
 | Cache controls and safe failures | Cache-hit URL variants, no-cache unchanged content files, refresh, TTL 0, purge/fresh read, invalid URL exit 2, incompatible account/provider exit 7 |
-| Ship downloadable version | GitHub Release `v0.1.0`, versioned CHANGELOG notes, immutable tag, two native archives and checksums |
+| Ship downloadable version | GitHub Release `v0.1.1`, versioned CHANGELOG notes, immutable tag, two native archives and checksums |
 | Install downloaded version | Download the published `install.sh`; installer downloads native release archive, verifies checksum/version, installs executable into an isolated directory |
 | Installed executable actually works | Run the same public verifier against the installed binary; record its SHA-256, version, time and passed checks |
 | Gates cover release commit | Native stable/MSRV build/tests, format, Clippy, rustdoc, aislop gate 95, actionlint; release workflow invokes CI/aislop against resolved tag SHA |
@@ -36,7 +36,7 @@ investigate, not an empty success to accept.
 
 ```sh
 python3 scripts/verify-public-release.py \
-  --binary /path/to/installed/xcli --expect-version 0.1.0 --live-public
+  --binary /path/to/installed/xcli --expect-version 0.1.1 --live-public
 ```
 
 Normal offline installer tests (`tests/installer.rs`) inject synthetic archives
@@ -49,6 +49,10 @@ existing installation. They do not substitute for downloading the real release.
 - Local source binary on macOS arm64: all 16 verifier checks passed against live
   FxTwitter on 2026-09-10. The nontrivial parent IDs were obtained from the public
   FxTwitter conversation for post 20, not from a browser session.
-- Release publication and real downloaded-install evidence: pending until the
-  release workflow and post-download checks complete. Do not treat the checklist
-  above as proof that they have run.
+- `v0.1.0` published successfully, but both post-download jobs failed at anonymous
+  installer download with HTTP 404. Inspection confirmed the repository is private.
+  This is a real installer defect for this repository, not successful verification.
+- `v0.1.1` adds authenticated `gh release download` support and tests it with fake
+  offline tools. Repository visibility is unchanged. Final downloaded-install
+  evidence remains pending until the patch release and post-download checks pass.
+  Do not treat the checklist above as proof that they have run.

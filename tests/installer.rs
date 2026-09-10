@@ -38,6 +38,23 @@ fi
 "#,
     );
     executable(
+        &tools.join("gh"),
+        r#"#!/bin/sh
+case "$1:$2" in
+  auth:status) exit 0 ;;
+  release:view) echo v0.1.0 ;;
+  release:download)
+    for arg do
+      if [ "$previous" = --dir ]; then destination=$arg; fi
+      previous=$arg
+    done
+    cp "$XCLI_FIXTURE_DIR/"* "$destination/"
+    ;;
+  *) exit 90 ;;
+esac
+"#,
+    );
+    executable(
         &package.join("xcli"),
         if mode == "version" {
             "#!/bin/sh\necho 'xcli 9.9.9'\n"
@@ -77,6 +94,14 @@ fi
         .env("PATH", path)
         .env("XCLI_FIXTURE_DIR", &assets)
         .env("XCLI_INSTALL_DIR", &install)
+        .env(
+            "XCLI_DOWNLOAD_MODE",
+            match mode {
+                "gh" => "gh",
+                "auto" => "auto",
+                _ => "curl",
+            },
+        )
         .env_remove("XCLI_VERSION")
         .output()
         .unwrap();
@@ -99,6 +124,25 @@ fn installs_verified_release_and_resolves_latest_without_real_network() {
     let version = Command::new(installed).arg("--version").output().unwrap();
     assert!(version.status.success());
     assert_eq!(version.stdout, b"xcli 0.1.0\n");
+}
+
+#[test]
+fn authenticated_and_auto_downloads_use_injected_github_cli() {
+    for mode in ["gh", "auto"] {
+        let (dir, output) = fixture(mode);
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(
+            Command::new(dir.path().join("installed/xcli"))
+                .arg("--version")
+                .status()
+                .unwrap()
+                .success()
+        );
+    }
 }
 
 #[test]

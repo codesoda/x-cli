@@ -5,20 +5,20 @@ Executed locally on macOS arm64, 2026-09-10. Stable compiler: Rust 1.95.0; decla
 | Check | Result |
 | --- | --- |
 | `cargo build` | Passed |
-| `cargo test` | 77 passed; feature-gated live target excluded |
-| `cargo test --locked --all-features` | 79 offline tests passed; 3 live cases ignored |
+| `cargo test` | 78 passed; feature-gated live target excluded |
+| `cargo test --locked --all-features` | 80 offline tests passed; 3 live cases ignored |
 | `cargo fmt --all -- --check` | Passed |
 | `cargo clippy --all-targets --all-features -- -D warnings` | Passed |
 | `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps` | Passed |
 | `cargo +1.88.0 build --locked` | Passed |
-| `cargo +1.88.0 test --locked --all-features` | 79 offline tests passed; 3 live cases ignored |
+| `cargo +1.88.0 test --locked --all-features` | 80 offline tests passed; 3 live cases ignored |
 | `actionlint .github/workflows/*.yml` | Passed |
 | `aislop ci` with gate 95 | Passed, 100/100; no findings |
 | Explicit FxTwitter public CLI test | Passed; all 16 checks in the public release verifier also passed on the source binary |
-| Installer safety checks | Two offline tests covering successful install and checksum/manifest/archive/version rejection passed; `shellcheck install.sh` passed |
+| Installer safety checks | Three offline tests covering curl/gh/auto installation and checksum/manifest/archive/version rejection passed; `shellcheck install.sh` passed |
 | Explicit public X manifest/hash test | Passed, no authenticated query |
 | Real Chrome/Keychain and authenticated GraphQL | User-reported post/parent/reply smoke stages passed; search HTTP 404 confirmed, header correction awaiting retry; timeline not reached. No browser/Keychain access by the agent |
-| GitHub-hosted CI / release publishing | Not run; workflows validated locally, no release published |
+| GitHub-hosted CI / release publishing | v0.1.0 build, CI, quality and publication passed; anonymous downloads failed because the repository is private. Authenticated installer patch and final v0.1.1 proof tracked in public-release.md |
 
 After splitting app orchestration and extracting cache/config/state/credential/provider tests, three additional app regression tests verify validation-before-access, local account dispatch and cooldown enforcement. All extracted test coverage is retained.
 

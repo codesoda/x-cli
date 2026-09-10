@@ -212,11 +212,12 @@ jobs:
         env:
           XCLI_VERSION: ${{ needs.validate.outputs.tag }}
           XCLI_INSTALL_DIR: ${{ runner.temp }}/xcli-installed
+          XCLI_DOWNLOAD_MODE: gh
+          GH_TOKEN: ${{ github.token }}
         run: |
-          curl --fail --silent --show-error --location --proto '=https' \
-            "https://github.com/codesoda/x-cli/releases/download/$XCLI_VERSION/install.sh" \
-            --output "$RUNNER_TEMP/xcli-install.sh"
-          sh "$RUNNER_TEMP/xcli-install.sh"
+          gh release download "$XCLI_VERSION" --repo "$GITHUB_REPOSITORY" \
+            --pattern install.sh --dir "$RUNNER_TEMP/release-installer"
+          sh "$RUNNER_TEMP/release-installer/install.sh"
           "$XCLI_INSTALL_DIR/xcli" --version
 
       # Explicit release-only public network verification; never browser/Keychain tests.
