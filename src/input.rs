@@ -3,7 +3,9 @@ pub fn id(value: &str) -> Result<String> {
     if !value.is_empty()
         && value.len() <= 20
         && value.bytes().all(|b| b.is_ascii_digit())
-        && value.parse::<u64>().is_ok_and(|v| v > 0)
+        && value
+            .parse::<u64>()
+            .is_ok_and(|v| v > 0 && v.to_string() == value)
     {
         return Ok(value.to_owned());
     }

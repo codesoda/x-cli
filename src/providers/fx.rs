@@ -5,11 +5,11 @@ use crate::{
 };
 use serde_json::Value;
 
+use crate::config::FXTWITTER_API_ORIGIN as API_ORIGIN;
+
 pub fn read(t: &dyn Transport, id: &str) -> Result<Output> {
     crate::input::id(id)?;
-    let response = t.get(Request::public(format!(
-        "https://api.fxtwitter.com/2/status/{id}"
-    )))?;
+    let response = t.get(Request::public(format!("{API_ORIGIN}/2/status/{id}")))?;
     check(&response, false)?;
     let v: Value = serde_json::from_slice(&response.body).map_err(|_| protocol())?;
     let code = v["code"].as_u64().ok_or_else(protocol)?;

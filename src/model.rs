@@ -30,6 +30,12 @@ pub struct Output {
     pub posts: Vec<Post>,
     pub provenance: Provenance,
     pub complete: bool,
+    #[serde(default)]
+    pub parent_chain_complete: Option<bool>,
+    #[serde(default)]
+    pub replies_complete: Option<bool>,
+    #[serde(default)]
+    pub request_failed: bool,
     pub stop_reason: String,
     pub next_cursor: Option<String>,
     pub pages: u32,
@@ -53,6 +59,9 @@ impl Output {
                 age_seconds: 0,
             },
             complete: false,
+            parent_chain_complete: None,
+            replies_complete: None,
+            request_failed: false,
             stop_reason: "unknown".into(),
             next_cursor: None,
             pages: 0,

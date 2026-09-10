@@ -41,7 +41,10 @@ impl Transport for Http {
     fn get(&self, request: Request) -> Result<Response> {
         let u = url::Url::parse(&request.url).map_err(|_| protocol())?;
         if u.scheme() != "https"
-            || !matches!(u.host_str(), Some("x.com" | "api.fxtwitter.com"))
+            || !matches!(
+                u.host_str(),
+                Some("x.com" | "api.fxtwitter.com" | "abs.twimg.com")
+            )
             || (!request.headers.is_empty() && u.host_str() != Some("x.com"))
         {
             return Err(Error::new(Kind::Unsupported, "Transport origin rejected"));
@@ -61,7 +64,7 @@ impl Transport for Http {
             .headers()
             .get("retry-after")
             .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.parse().ok())
+            .and_then(|v| retry_delay(v, std::time::SystemTime::now()))
             .or_else(|| {
                 response
                     .headers()
@@ -85,6 +88,17 @@ impl Transport for Http {
         })
     }
 }
+fn retry_delay(value: &str, now: std::time::SystemTime) -> Option<u64> {
+    value.parse::<u64>().ok().or_else(|| {
+        let until = httpdate::parse_http_date(value).ok()?;
+        let delay = until.duration_since(now).unwrap_or_default();
+        Some(
+            delay
+                .as_secs()
+                .saturating_add(u64::from(delay.subsec_nanos() != 0)),
+        )
+    })
+}
 pub fn check(response: &Response, authenticated: bool) -> Result<()> {
     let e = match response.status {
         200..=299 => return Ok(()),
@@ -105,7 +119,7 @@ pub fn check(response: &Response, authenticated: bool) -> Result<()> {
                 Kind::RateLimit,
                 "Rate limited; wait before retrying; no automatic retry performed",
             );
-            e.retry_after_seconds = Some(response.retry_after.unwrap_or(60));
+            e.retry_after_seconds = Some(response.retry_after.unwrap_or(60).max(1));
             e
         }
         500..=599 => Error::new(Kind::Network, "Upstream service failure"),
@@ -116,6 +130,14 @@ pub fn check(response: &Response, authenticated: bool) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn retry_after_seconds_and_http_dates() {
+        let now = std::time::UNIX_EPOCH + std::time::Duration::from_secs(100);
+        assert_eq!(retry_delay("42", now), Some(42));
+        let future = httpdate::fmt_http_date(now + std::time::Duration::from_secs(120));
+        assert_eq!(retry_delay(&future, now), Some(120));
+        assert_eq!(retry_delay("not-a-date", now), None);
+    }
     #[test]
     fn safe_errors() {
         for (status, kind) in [
