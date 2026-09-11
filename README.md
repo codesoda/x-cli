@@ -60,7 +60,7 @@ checks that the archive contains exactly the `xcli` binary reporting the expecte
 version, and installs atomically to `~/.local/bin/xcli` without sudo. Add
 `~/.local/bin` to PATH. To inspect before executing, download `install.sh` first
 and run it with `sh install.sh --release` (see `sh install.sh --help` for the
-full mode and environment contract). Set `XCLI_VERSION=v0.1.1` to pin a release,
+full mode and environment contract). Set `XCLI_VERSION=v0.1.2` to pin a release,
 or `XCLI_INSTALL_DIR=/your/bin` to choose the destination. Downloads are
 anonymous `curl` by default (`XCLI_DOWNLOAD_MODE=auto|curl`); set
 `XCLI_DOWNLOAD_MODE=gh` to use an authenticated GitHub CLI instead. Archives and
@@ -82,10 +82,8 @@ destination; a failed build leaves any existing installation unchanged. Pass
 script never source-builds from the working directory. `cargo install --path .
 --locked` also works and places `xcli` in `~/.cargo/bin`.
 
-Note: changes on `main` (including this dual-mode installer and the `update`
-command below) are served from `raw.githubusercontent.com` only once pushed,
-and ship in binaries only with the next release; the currently published
-v0.1.1 binaries predate them.
+The dual-mode installer and `update` command are available starting with
+v0.1.2. Older binaries can be upgraded by rerunning the curl installer.
 
 Release automation packages
 both macOS architectures, then downloads the published installer/binaries and
@@ -152,7 +150,7 @@ Accepted post inputs: positive decimal IDs; `x.com`/`twitter.com` status URLs, i
 
 `xcli update --check` reports the installed and latest released versions without changing anything. `xcli update` installs a strictly newer stable release only after an interactive terminal confirmation; `-y`/`--yes` skips the prompt and is required when stdin is not a terminal—without it the command fails before any network use. Updates never run automatically, never downgrade or reinstall an equal version, and only support the published native macOS artifacts (Apple Silicon and Intel); other platforms fail with exit 7—rebuild from source instead. The archive's SHA-256 is verified against the published checksum manifest **before** the candidate binary is ever executed; only the root-level `xcli` file is extracted, its `--version` is validated against the release, and the current executable (resolved through symlinks) is replaced atomically, remaining untouched on any failure. Update speaks only anonymous HTTPS to GitHub's release endpoints with bounded redirects, timeouts and download sizes, uses a transport separate from X reads carrying no session material, and never touches accounts, caches or credentials; `--data-dir` is rejected rather than ignored.
 
-**`xcli update` first ships in a release newer than v0.1.1.** The currently published v0.1.1 binaries do not include the command; until a newer release is published, a source build at the current version correctly reports that no newer release is available.
+**`xcli update` requires v0.1.2 or newer.** For v0.1.1 and older, rerun the curl installer to upgrade.
 
 ## Accounts and browser setup
 
@@ -233,7 +231,7 @@ Errors are JSON on stderr; results are JSON on stdout. GraphQL failures may incl
 | X Viewer/post/replies/search/timeline | User-reported post/parent/reply smoke checks passed; search failed with exit 8, timeline not reached; see live-verification notes |
 | Cache/account routing/security | Implemented; deterministic tests |
 | Media, quotes, metrics, articles | Not normalized in this initial text-focused model; no promise of full rich-post fidelity |
-| Self-update (`xcli update`) | Implemented on `main` with offline tests; not present in the downloaded v0.1.1 binaries—first available in the next release |
+| Self-update (`xcli update`) | Available starting with v0.1.2; offline-tested, explicit-only updates |
 | Other browser/OS authentication | Unsupported |
 | Phase 2 mutations | Unimplemented; [issue #1](https://github.com/codesoda/x-cli/issues/1) |
 

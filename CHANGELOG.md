@@ -6,9 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-These changes exist only on `main`. The published v0.1.1 binaries and the
-installer shipped in v0.1.1 release assets predate them; nothing below is a
-claim about downloaded v0.1.1 behavior.
+## [0.1.2] - 2026-09-11
 
 ### Added
 
@@ -24,7 +22,7 @@ claim about downloaded v0.1.1 behavior.
   are supported. Update uses a bounded anonymous HTTPS transport separate
   from X reads and never initializes accounts, caches or credentials;
   `--data-dir` and read-command flags are rejected rather than ignored. The
-  command first ships in the next release.
+  command is available starting with v0.1.2.
 - Source mode for `install.sh`: executing the script from an x-cli checkout
   (validated by the `Cargo.toml` package name beside it) builds with
   `cargo build --release --locked` and warnings denied, verifies the built
