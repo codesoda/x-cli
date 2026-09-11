@@ -1,162 +1,194 @@
 #![cfg(unix)]
-use sha2::{Digest, Sha256};
-use std::{fs, os::unix::fs::PermissionsExt, path::Path, process::Command};
+//! Offline synthetic tests for the dual-mode POSIX installer. Network tools,
+//! `uname`, `gh`, and `cargo` are injected stubs; no real downloads or builds.
+// Helpers live in tests/installer/ so cargo does not compile them as a
+// standalone test crate; the path attribute keeps this file the crate root.
+#[path = "installer/helpers.rs"]
+mod helpers;
 
-fn executable(path: &Path, content: &str) {
-    fs::write(path, content).unwrap();
-    fs::set_permissions(path, fs::Permissions::from_mode(0o755)).unwrap();
-}
+use helpers::{Assets, Fixture, RELEASE_VERSION, SOURCE_VERSION};
 
-fn fixture(mode: &str) -> (tempfile::TempDir, std::process::Output) {
-    let dir = tempfile::tempdir().unwrap();
-    let root = dir.path().canonicalize().unwrap();
-    let tools = root.join("tools");
-    let assets = root.join("assets");
-    let package = root.join("package");
-    let install = root.join("installed");
-    for path in [&tools, &assets, &package, &install] {
-        fs::create_dir(path).unwrap();
+#[test]
+fn standalone_script_installs_verified_release_with_anonymous_curl() {
+    // Unset, auto, and explicit curl download modes all avoid gh and cargo.
+    for envs in [
+        &[][..],
+        &[("XCLI_DOWNLOAD_MODE", "auto")][..],
+        &[("XCLI_DOWNLOAD_MODE", "curl")][..],
+    ] {
+        let fixture = Fixture::new();
+        let output = fixture.run_file(&fixture.standalone_script(), &[], envs);
+        fixture.assert_installed(&output, RELEASE_VERSION);
+        assert_eq!(fixture.tool_log("gh"), "", "auto must not probe gh");
+        assert_eq!(fixture.tool_log("cargo"), "", "release mode must not build");
     }
-    executable(
-        &tools.join("uname"),
-        "#!/bin/sh\nif [ \"$1\" = -s ]; then echo Darwin; else echo x86_64; fi\n",
-    );
-    executable(
-        &tools.join("curl"),
-        r#"#!/bin/sh
-out=
-for arg do
-  if [ "$previous" = --output ]; then out=$arg; fi
-  previous=$arg
-  url=$arg
-done
-if [ "$out" = /dev/null ]; then
-  printf '%s\n' 'https://github.com/codesoda/x-cli/releases/tag/v0.1.0'
-else
-  cp "$XCLI_FIXTURE_DIR/${url##*/}" "$out"
-fi
-"#,
-    );
-    executable(
-        &tools.join("gh"),
-        r#"#!/bin/sh
-case "$1:$2" in
-  auth:status) exit 0 ;;
-  release:view) echo v0.1.0 ;;
-  release:download)
-    for arg do
-      if [ "$previous" = --dir ]; then destination=$arg; fi
-      previous=$arg
-    done
-    cp "$XCLI_FIXTURE_DIR/"* "$destination/"
-    ;;
-  *) exit 90 ;;
-esac
-"#,
-    );
-    executable(
-        &package.join("xcli"),
-        if mode == "version" {
-            "#!/bin/sh\necho 'xcli 9.9.9'\n"
-        } else {
-            "#!/bin/sh\necho 'xcli 0.1.0'\n"
-        },
-    );
-    let archive = "xcli-v0.1.0-x86_64-apple-darwin.tar.gz";
-    let mut tar = Command::new("tar");
-    tar.arg("-czf")
-        .arg(assets.join(archive))
-        .arg("-C")
-        .arg(&package)
-        .arg("xcli");
-    if mode == "archive" {
-        fs::write(package.join("extra"), "unexpected").unwrap();
-        tar.arg("extra");
-    }
-    assert!(tar.status().unwrap().success());
-    let digest = format!(
-        "{:x}",
-        Sha256::digest(fs::read(assets.join(archive)).unwrap())
-    );
-    let manifest = match mode {
-        "checksum" => format!("{}  {archive}\n", "0".repeat(64)),
-        "missing" => format!("{digest}  unrelated.tar.gz\n"),
-        _ => format!("{digest}  {archive}\n"),
-    };
-    fs::write(assets.join("checksums-sha256.txt"), manifest).unwrap();
-    fs::write(install.join("xcli"), "previous install").unwrap();
-    let path = std::env::join_paths(
-        std::iter::once(tools).chain(std::env::split_paths(&std::env::var_os("PATH").unwrap())),
-    )
-    .unwrap();
-    let output = Command::new("sh")
-        .arg(Path::new(env!("CARGO_MANIFEST_DIR")).join("install.sh"))
-        .env("PATH", path)
-        .env("XCLI_FIXTURE_DIR", &assets)
-        .env("XCLI_INSTALL_DIR", &install)
-        .env(
-            "XCLI_DOWNLOAD_MODE",
-            match mode {
-                "gh" => "gh",
-                "auto" => "auto",
-                _ => "curl",
-            },
-        )
-        .env_remove("XCLI_VERSION")
-        .output()
-        .unwrap();
-    (dir, output)
 }
 
 #[test]
-fn installs_verified_release_and_resolves_latest_without_real_network() {
-    let (dir, output) = fixture("ok");
+fn explicit_gh_mode_uses_injected_github_cli() {
+    let fixture = Fixture::new();
+    let output = fixture.run_file(
+        &fixture.standalone_script(),
+        &[],
+        &[("XCLI_DOWNLOAD_MODE", "gh")],
+    );
+    fixture.assert_installed(&output, RELEASE_VERSION);
+    assert!(fixture.tool_log("gh").contains("release download"));
+    assert_eq!(fixture.tool_log("cargo"), "");
+}
+
+#[test]
+fn piped_script_from_checkout_installs_release_without_cargo() {
+    // `curl | sh` run inside an x-cli checkout must never infer source mode
+    // from the working directory: it installs the release and skips cargo.
+    let fixture = Fixture::new();
+    let checkout = fixture.checkout("checkout", "xcli");
+    let output = fixture.run_piped(&checkout, &[], &[]);
+    fixture.assert_installed(&output, RELEASE_VERSION);
+    assert_eq!(fixture.tool_log("cargo"), "");
+    assert_eq!(fixture.tool_log("gh"), "");
+}
+
+#[test]
+fn force_release_flag_overrides_source_checkout() {
+    let fixture = Fixture::new();
+    let checkout = fixture.checkout("checkout", "xcli");
+    let output = fixture.run_file(&checkout.join("install.sh"), &["--release"], &[]);
+    fixture.assert_installed(&output, RELEASE_VERSION);
+    assert_eq!(fixture.tool_log("cargo"), "");
+}
+
+#[test]
+fn source_mode_builds_checkout_with_spaces_locked_and_warnings_denied() {
+    let fixture = Fixture::new();
+    let checkout = fixture.checkout("check out dir", "xcli");
+    let output = fixture.run_file(&checkout.join("install.sh"), &[], &[]);
+    fixture.assert_installed(&output, SOURCE_VERSION);
+    let log = fixture.tool_log("cargo");
+    assert!(log.contains("args=build --release --locked"), "{log}");
+    assert!(log.contains("-D warnings"), "{log}");
     assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
+        log.contains(&format!("target={}", checkout.join("target").display())),
+        "{log}"
     );
-    let installed = dir.path().join("installed/xcli");
-    assert_eq!(
-        fs::metadata(&installed).unwrap().permissions().mode() & 0o777,
-        0o755
+    assert!(
+        log.contains(&format!("pwd={}", checkout.display())),
+        "{log}"
     );
-    let version = Command::new(installed).arg("--version").output().unwrap();
-    assert!(version.status.success());
-    assert_eq!(version.stdout, b"xcli 0.1.0\n");
+    assert_eq!(fixture.tool_log("gh"), "", "source mode must not download");
 }
 
 #[test]
-fn authenticated_and_auto_downloads_use_injected_github_cli() {
-    for mode in ["gh", "auto"] {
-        let (dir, output) = fixture(mode);
-        assert!(
-            output.status.success(),
-            "{}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-        assert!(
-            Command::new(dir.path().join("installed/xcli"))
-                .arg("--version")
-                .status()
-                .unwrap()
-                .success()
-        );
+fn source_mode_honors_preset_cargo_target_dir() {
+    let fixture = Fixture::new();
+    let checkout = fixture.checkout("checkout", "xcli");
+    let target = fixture.root().join("custom target");
+    let output = fixture.run_file(
+        &checkout.join("install.sh"),
+        &["--source"],
+        &[("CARGO_TARGET_DIR", target.to_str().unwrap())],
+    );
+    fixture.assert_installed(&output, SOURCE_VERSION);
+    assert!(
+        fixture
+            .tool_log("cargo")
+            .contains(&format!("target={}", target.display()))
+    );
+    assert!(target.join("release/xcli").is_file());
+}
+
+#[test]
+fn conflicting_or_invalid_modes_fail_before_building_or_installing() {
+    // Version pin must not be silently ignored by a source build.
+    let fixture = Fixture::new();
+    let checkout = fixture.checkout("checkout", "xcli");
+    let script = checkout.join("install.sh");
+    let output = fixture.run_file(&script, &[], &[("XCLI_VERSION", "v0.1.0")]);
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("XCLI_VERSION"));
+    fixture.assert_untouched();
+    assert_eq!(fixture.tool_log("cargo"), "");
+
+    // A download mode is meaningless for a source build; fail, do not ignore.
+    let output = fixture.run_file(&script, &[], &[("XCLI_DOWNLOAD_MODE", "gh")]);
+    assert!(!output.status.success());
+    fixture.assert_untouched();
+
+    // --source and --release are mutually exclusive.
+    let output = fixture.run_file(&script, &["--source", "--release"], &[]);
+    assert!(!output.status.success());
+    fixture.assert_untouched();
+
+    // A piped script has no checkout beside it, even when run from one.
+    let output = fixture.run_piped(&checkout, &["--source"], &[]);
+    assert!(!output.status.success());
+    fixture.assert_untouched();
+    assert_eq!(fixture.tool_log("cargo"), "");
+
+    // --source without a Cargo.toml beside the script fails.
+    let output = fixture.run_file(&fixture.standalone_script(), &["--source"], &[]);
+    assert!(!output.status.success());
+    fixture.assert_untouched();
+
+    // Unknown arguments are rejected.
+    let output = fixture.run_file(&fixture.standalone_script(), &["--bogus"], &[]);
+    assert!(!output.status.success());
+    fixture.assert_untouched();
+}
+
+#[test]
+fn foreign_package_beside_script_fails_package_identity_validation() {
+    let fixture = Fixture::new();
+    let checkout = fixture.checkout("checkout", "impostor");
+    for args in [&[][..], &["--source"][..]] {
+        let output = fixture.run_file(&checkout.join("install.sh"), args, &[]);
+        assert!(!output.status.success(), "{args:?}");
+        fixture.assert_untouched();
+        assert_eq!(fixture.tool_log("cargo"), "");
     }
+}
+
+#[test]
+fn source_build_failure_or_wrong_version_retains_existing_install() {
+    let fixture = Fixture::new();
+    let checkout = fixture.checkout("checkout", "xcli");
+    let script = checkout.join("install.sh");
+    let output = fixture.run_file(&script, &[], &[("XCLI_TEST_CARGO_FAIL", "1")]);
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("cargo build failed"));
+    fixture.assert_untouched();
+
+    let output = fixture.run_file(&script, &[], &[("XCLI_TEST_BUILD_VERSION", "9.9.9")]);
+    assert!(!output.status.success());
+    fixture.assert_untouched();
 }
 
 #[test]
 fn rejects_bad_checksum_manifest_archive_and_version_without_replacing_install() {
-    for mode in ["checksum", "missing", "archive", "version"] {
-        let (dir, output) = fixture(mode);
-        assert!(!output.status.success(), "{mode}");
-        assert_eq!(
-            fs::read_to_string(dir.path().join("installed/xcli")).unwrap(),
-            "previous install"
-        );
-        assert_eq!(
-            fs::read_dir(dir.path().join("installed")).unwrap().count(),
-            1
-        );
+    for assets in [
+        Assets::BadChecksum,
+        Assets::MissingEntry,
+        Assets::ExtraMember,
+        Assets::WrongVersion,
+    ] {
+        let fixture = Fixture::new();
+        fixture.write_assets(assets);
+        let output = fixture.run_file(&fixture.standalone_script(), &[], &[]);
+        assert!(!output.status.success());
+        fixture.assert_untouched();
     }
+}
+
+#[test]
+fn help_prints_usage_without_touching_the_installation() {
+    let fixture = Fixture::new();
+    let output = fixture.run_piped(fixture.root(), &["--help"], &[]);
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for expected in ["--release", "--source", "XCLI_VERSION", "XCLI_INSTALL_DIR"] {
+        assert!(stdout.contains(expected), "missing {expected}");
+    }
+    fixture.assert_untouched();
+    assert_eq!(fixture.tool_log("cargo"), "");
+    assert_eq!(fixture.tool_log("gh"), "");
 }

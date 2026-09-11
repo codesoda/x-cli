@@ -6,6 +6,48 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+These changes exist only on `main`. The published v0.1.1 binaries and the
+installer shipped in v0.1.1 release assets predate them; nothing below is a
+claim about downloaded v0.1.1 behavior.
+
+### Added
+
+- Explicit `xcli update` self-update command with `--check` and `-y`/`--yes`.
+  `--check` is non-mutating; installation requires an interactive terminal
+  confirmation or `--yes` (a non-terminal stdin without `--yes` fails before
+  any network use). The release archive's SHA-256 is verified against the
+  published manifest before the candidate is ever executed, only the
+  root-level `xcli` archive member is extracted, the candidate's `--version`
+  is validated, and the current executable is replaced atomically with every
+  failure path preserving the existing binary. Equal or older releases are
+  never installed; only native macOS Apple Silicon/Intel release artifacts
+  are supported. Update uses a bounded anonymous HTTPS transport separate
+  from X reads and never initializes accounts, caches or credentials;
+  `--data-dir` and read-command flags are rejected rather than ignored. The
+  command first ships in the next release.
+- Source mode for `install.sh`: executing the script from an x-cli checkout
+  (validated by the `Cargo.toml` package name beside it) builds with
+  `cargo build --release --locked` and warnings denied, verifies the built
+  binary's version, and installs it atomically; build failures leave any
+  existing installation unchanged. `--source`/`--release` select a mode
+  explicitly, `--help` documents the contract, and a piped script can never
+  source-build from the working directory. Offline installer tests now cover
+  both modes with injected `uname`/`curl`/`gh`/`cargo` stubs.
+- New production dependencies `flate2` and `tar` for in-process release
+  archive extraction during self-update; see the dependency rationale in
+  [docs/development.md](docs/development.md).
+
+### Changed
+
+- The repository is now public. The installer defaults to anonymous `curl`
+  downloads (`XCLI_DOWNLOAD_MODE=auto` resolves to `curl`); `gh` remains
+  available when selected explicitly. `XCLI_VERSION` and `XCLI_DOWNLOAD_MODE`
+  now fail loudly in source mode instead of being silently ignored.
+- Documentation describes the anonymous public installation flow. The v0.1.0
+  anonymous-404 history and the v0.1.1 private-repository audit evidence are
+  preserved as historical records in
+  [docs/public-release.md](docs/public-release.md).
+
 ## [0.1.1] - 2026-09-10
 
 ### Fixed

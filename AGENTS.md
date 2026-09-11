@@ -70,6 +70,16 @@ Directory-specific checklists live in
 - `src/pagination.rs`: bound requests, detect repeated cursors, retain partial
   results on later failure, and never infer exhaustive collections from cursor
   exhaustion. Failed requests are not empty successes or fresh cache entries.
+- `src/update.rs` and `src/update/`: explicit self-update only—never automatic.
+  Keep `--check` non-mutating; require a terminal confirmation or `--yes`
+  before installing (fail before network use otherwise); verify the manifest
+  checksum before executing any candidate; replace the executable atomically
+  with failures preserving the current binary; never downgrade; support only
+  published native macOS artifacts. Update dispatch precedes data-root/cache
+  construction and must never touch accounts, caches, credentials or the X
+  transport. `install.sh` shares these guarantees; keep it dual-mode
+  (release/source), shellcheck-clean, and covered by offline injected-tool
+  tests in `tests/installer.rs`.
 
 Keep modules focused and aim for fewer than 400 lines per file. Move substantial
 inline test modules to `<module>/tests.rs` as private `#[cfg(test)]` child modules;

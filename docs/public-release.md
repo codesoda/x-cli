@@ -40,9 +40,10 @@ python3 scripts/verify-public-release.py \
 ```
 
 Normal offline installer tests (`tests/installer.rs`) inject synthetic archives
-and fake curl/uname commands into child processes, with no network access. They
-cover checksum, manifest, archive and version rejection without replacing an
-existing installation. They do not substitute for downloading the real release.
+and fake `uname`/`curl`/`gh`/`cargo` commands into child processes, with no
+network access. They cover release and source install modes plus checksum,
+manifest, archive and version rejection without replacing an existing
+installation. They do not substitute for downloading the real release.
 
 ## Completion audit — verified 2026-09-10
 
@@ -50,11 +51,15 @@ existing installation. They do not substitute for downloading the real release.
   FxTwitter on 2026-09-10. The nontrivial parent IDs were obtained from the public
   FxTwitter conversation for post 20, not from a browser session.
 - `v0.1.0` published successfully, but both post-download jobs failed at anonymous
-  installer download with HTTP 404. Inspection confirmed the repository is private.
-  This is a real installer defect for this repository, not successful verification.
+  installer download with HTTP 404. Inspection confirmed the repository was
+  private at the time. This was a real installer defect for this repository as
+  then configured, not successful verification.
 - **`v0.1.1` is published**, not a draft or prerelease:
   https://github.com/codesoda/x-cli/releases/tag/v0.1.1 . Repository visibility
-  remains private; authenticated GitHub access is required for downloads.
+  was private at verification time, so authenticated GitHub access was required
+  for these downloads. The repository has since been made public (confirmed via
+  the anonymous GitHub API on 2026-09-11, `"private": false`); no anonymous
+  re-download of the v0.1.1 assets has been performed or is claimed here.
 - Tag commit: `77a97e3196d51261504e0429f7224ee2f51f6ec0`, merged through
   [PR #3](https://github.com/codesoda/x-cli/pull/3), following the initial
   [PR #2](https://github.com/codesoda/x-cli/pull/2).

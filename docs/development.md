@@ -57,7 +57,8 @@ license/provenance, and MSRV consequences when adding or updating them.
 | `reqwest` with blocking/JSON/rustls and default features disabled | Synchronous HTTP for the CLI with TLS, without requiring a separate application async runtime or system OpenSSL setup. |
 | `url` | Structural URL parsing and safe request construction instead of string matching. |
 | `httpdate` | Correct handling of HTTP-date as well as numeric Retry-After headers. |
-| `sha2` | SHA-256 cache keys and Chromium cookie host-digest validation; not password storage. |
+| `sha2` | SHA-256 cache keys, Chromium cookie host-digest validation, and release-archive checksum verification for self-update; not password storage. |
+| `flate2`, `tar` | In-process gzip/tar extraction of release archives during `xcli update`, restricted to the single expected root-level binary member; never used to extract untrusted paths or links. |
 | `tempfile` (dev-only) | Isolated synthetic test directories; not used for browser credential exports. |
 | `libc` | Native descriptor-relative secure file operations and advisory locks; avoids handwritten platform ABI constants. |
 | `zeroize` | Best-effort cleanup of owned credential/key buffers; does not guarantee erasure of every copy or OS buffer. |
@@ -149,17 +150,32 @@ install into isolated directories, and explicitly run
 network check is not part of normal CI or the locally gated authenticated suite.
 Its JSON evidence is uploaded per architecture. See [public-release.md](public-release.md).
 
-`install.sh` supports `XCLI_DOWNLOAD_MODE=auto|gh|curl`: auto uses an authenticated
-GitHub CLI when available, otherwise curl. Private repositories require `gh`
-with repository access; do not change repository visibility to bypass download
-failures. CI supplies its scoped GitHub token only to the download/install step,
-never to X or public-read tests.
+`install.sh` is dual-mode. **Release mode** (the default for a piped script or
+when no x-cli checkout sits beside an executed script) downloads a prebuilt
+macOS release. It supports `XCLI_DOWNLOAD_MODE=auto|gh|curl`: the repository is
+public, so `auto` resolves to anonymous curl; `gh` performs authenticated
+downloads only when selected explicitly. Repository visibility is a maintainer
+decision, not something to change to work around download failures. CI supplies
+its scoped GitHub token only to the download/install step, never to X or
+public-read tests.
 
-The installer also supports `XCLI_VERSION` (otherwise latest) and `XCLI_INSTALL_DIR`
-(otherwise `~/.local/bin`). It verifies the selected asset checksum, archive
-contents and executable version before replacing an installation. Installer
-regression tests are offline with synthetic executable archives and child-process
-tool injection; no system-wide installation occurs in tests.
+Release mode also supports `XCLI_VERSION` (otherwise latest) and
+`XCLI_INSTALL_DIR` (otherwise `~/.local/bin`). It verifies the selected asset
+checksum, archive contents and executable version before replacing an
+installation. **Source mode** (the default when an executed `install.sh` has
+the xcli `Cargo.toml` beside it; also `--source`) builds the checkout with
+`cargo build --release --locked` and `-D warnings`, verifies the built binary's
+version against the manifest, and installs through the same atomic path;
+`XCLI_VERSION`/`XCLI_DOWNLOAD_MODE` conflict with source mode and fail loudly.
+Installer regression tests are offline with synthetic executable archives and
+child-process `uname`/`curl`/`gh`/`cargo` injection; no system-wide
+installation or network access occurs in tests.
+
+`xcli update` downloads these same published assets anonymously at runtime.
+Keep the asset naming (`xcli-<tag>-<target>.tar.gz`), the sha256sum-format
+`checksums-sha256.txt` manifest, stable `vX.Y.Z` tags and the root-level
+`xcli` archive member stable: already-shipped binaries parse them when
+checking for and installing updates.
 
 Only the publish job receives `contents: write`; the workflows default to read
 permission and checkout does not persist credentials. Release notes come from

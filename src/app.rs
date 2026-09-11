@@ -43,6 +43,17 @@ pub fn execute(
     credentials: &dyn CredentialProvider,
     discover: impl FnOnce() -> Result<Vec<Profile>>,
 ) -> Result<Value> {
+    // Self-update never initializes accounts, caches, credentials or local
+    // state, and it deliberately does not use the injected X transport.
+    if let Command::Update { check, yes } = &cli.command {
+        if cli.data_dir.is_some() {
+            return Err(Error::new(
+                Kind::InvalidInput,
+                "update does not use --data-dir; remove the flag",
+            ));
+        }
+        return crate::update::run(*check, *yes);
+    }
     let root = data_root(cli)?;
     let cache = Cache::new(root.join("cache"));
     match &cli.command {
@@ -121,6 +132,9 @@ fn save_cached(cache: &Cache, a: &Access, key: &str, out: &Output) -> Result<()>
     Ok(())
 }
 pub fn human(value: &Value) -> String {
+    if let Some(update) = crate::update::human(value) {
+        return update;
+    }
     if let Ok(out) = serde_json::from_value::<Output>(value.clone()) {
         let mut s = format!(
             "{} · {} · complete={} · {}\n",

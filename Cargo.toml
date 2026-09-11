@@ -26,6 +26,8 @@ sha2 = "0.10"
 zeroize = "1"
 libc = "0.2"
 httpdate = "1"
+flate2 = "1"
+tar = "0.4"
 
 aes = { version = "0.8.4", features = ["zeroize"] }
 cbc = { version = "0.1.2", features = ["zeroize"] }

@@ -58,6 +58,18 @@ pub enum Command {
     },
     /// Local diagnostics only: does not inspect profiles, access Keychain, or contact X.
     Doctor,
+    /// Explicitly check for or install a newer released xcli; never runs automatically.
+    Update {
+        #[arg(long, help = "Report update status without changing the installation")]
+        check: bool,
+        #[arg(
+            short = 'y',
+            long,
+            conflicts_with = "check",
+            help = "Skip the interactive install confirmation"
+        )]
+        yes: bool,
+    },
 }
 #[derive(Debug, Subcommand)]
 pub enum UserCommand {
@@ -207,5 +219,32 @@ mod tests {
         assert!(Cli::try_parse_from(["xcli", "read", "20", "--alias", "work"]).is_err());
         assert!(Cli::try_parse_from(["xcli", "search", "q", "--max-pages", "0"]).is_err());
         assert!(Cli::try_parse_from(["xcli", "likes", "add", "20"]).is_err());
+    }
+    #[test]
+    fn update_contract() {
+        for args in [
+            ["xcli", "update"].as_slice(),
+            &["xcli", "update", "--check"],
+            &["xcli", "update", "-y"],
+            &["xcli", "update", "--yes"],
+        ] {
+            let cli = Cli::try_parse_from(args).unwrap();
+            assert!(matches!(cli.command, Command::Update { .. }), "{args:?}");
+        }
+        // --check never installs, so combining it with --yes is contradictory.
+        assert!(Cli::try_parse_from(["xcli", "update", "--check", "--yes"]).is_err());
+        // Account/provider/pagination flags are rejected, not ignored.
+        for flag in [
+            "--account",
+            "--connection",
+            "--backend",
+            "--max-pages",
+            "--cursor",
+        ] {
+            assert!(
+                Cli::try_parse_from(["xcli", "update", flag, "value"]).is_err(),
+                "{flag}"
+            );
+        }
     }
 }

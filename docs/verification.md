@@ -1,5 +1,32 @@
 # Implementation verification
 
+## Self-update and dual-mode installer — verified 2026-09-11
+
+Executed locally on macOS arm64 against the uncommitted working tree containing
+the `xcli update` command and the rewritten dual-mode `install.sh`.
+
+| Check | Result |
+| --- | --- |
+| `cargo fmt --all -- --check` | Passed |
+| `cargo build --locked` | Passed |
+| `cargo test --locked` | 119 offline tests passed (98 lib, 6 cli, 11 installer, 4 update integration) |
+| `cargo test --locked --all-features` | 121 offline tests passed; 3 live cases ignored |
+| `cargo clippy --all-targets --all-features -- -D warnings` | Passed |
+| `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps` | Passed |
+| `cargo +1.88.0 test --locked` | 119 offline tests passed |
+| `aislop ci` with gate 95 | Passed, exit 0; 0 errors, 0 warnings |
+| `shellcheck install.sh` and `sh -n install.sh` | Passed |
+| Repository visibility | Anonymous GitHub API reports `"private": false` (checked 2026-09-11) |
+
+Deliberately not performed: no live `xcli update --check`/install against
+GitHub releases (the published v0.1.1 predates the command; network seams are
+offline-tested), no real release download or system-wide installation, no
+browser/Keychain or authenticated X access, and no commit, push, tag or
+release publication. Installer and update tests use injected child-process
+tools and synthetic archives only.
+
+## Phase 1 read-only CLI — verified 2026-09-10
+
 Executed locally on macOS arm64, 2026-09-10. Stable compiler: Rust 1.95.0; declared MSRV additionally tested with Rust 1.88.0.
 
 | Check | Result |
