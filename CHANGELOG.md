@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Opt-in live CLI smoke tests accept `XCLI_LIVE_BINARY` to verify a trusted
+  installed executable instead of the Cargo build, preserving explicit consent,
+  profile validation, CI refusal, and redacted failure output. This adds a
+  verification path, not evidence of authenticated interoperability.
+
 ## [0.1.2] - 2026-09-11
 
 ### Added

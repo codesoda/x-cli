@@ -80,8 +80,20 @@ fn safe_diagnostic(stderr: &[u8]) -> Option<xcli::error::Diagnostic> {
     let error: serde_json::Value = serde_json::from_slice(stderr).ok()?;
     serde_json::from_value(error.get("diagnostic")?.clone()).ok()
 }
+fn select_binary(override_path: Option<&std::ffi::OsStr>) -> Result<PathBuf, &'static str> {
+    let path = override_path
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_xcli")));
+    if !path.is_absolute() || !path.is_file() {
+        return Err("XCLI_LIVE_BINARY must name an existing absolute executable file");
+    }
+    Ok(path)
+}
+
 fn run(root: &Path, args: &[&str], stage: &str) -> Output {
-    let result = Command::new(env!("CARGO_BIN_EXE_xcli"))
+    let binary = select_binary(std::env::var_os("XCLI_LIVE_BINARY").as_deref())
+        .unwrap_or_else(|message| panic!("{message}"));
+    let result = Command::new(binary)
         .arg("--data-dir")
         .arg(root)
         .args(args)
@@ -111,6 +123,27 @@ fn run(root: &Path, args: &[&str], stage: &str) -> Output {
             .is_none_or(|cursor| !cursor.is_empty())
     );
     output
+}
+
+#[test]
+fn binary_selection_is_explicit_and_fail_closed() {
+    use std::ffi::OsStr;
+    assert_eq!(
+        select_binary(None).unwrap(),
+        PathBuf::from(env!("CARGO_BIN_EXE_xcli"))
+    );
+    let directory = tempfile::tempdir().unwrap();
+    let binary = directory.path().join("installed-xcli");
+    std::fs::write(&binary, b"synthetic executable placeholder").unwrap();
+    assert_eq!(select_binary(Some(binary.as_os_str())).unwrap(), binary);
+    for path in [
+        OsStr::new(""),
+        OsStr::new("relative-xcli"),
+        directory.path().as_os_str(),
+    ] {
+        assert!(select_binary(Some(path)).is_err());
+    }
+    assert!(select_binary(Some(directory.path().join("missing").as_os_str())).is_err());
 }
 
 #[test]
