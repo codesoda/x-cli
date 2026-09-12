@@ -1,6 +1,7 @@
 use super::*;
 use clap::Parser;
 mod likes;
+mod list_metadata;
 mod lists;
 mod relationships;
 
@@ -184,6 +185,9 @@ fn private_collection_cache_guards(operation: &[&str]) {
     let mut output = Output::new("graphql", Some("123".into()));
     if task.expects_users() {
         output.users = Some(vec![]);
+    }
+    if task.expects_lists() {
+        output.lists = Some(vec![list_metadata::fixture()]);
     }
     cache
         .put("graphql", Some("123"), &task.key(), &output)

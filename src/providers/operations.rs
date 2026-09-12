@@ -19,6 +19,7 @@ pub enum Operation {
     Likes,
     ListPosts,
     ListMembers,
+    ListMetadata,
     Following,
     Followers,
 }
@@ -35,6 +36,7 @@ impl Operation {
             Self::Likes => "Likes",
             Self::ListPosts => "ListLatestTweetsTimeline",
             Self::ListMembers => "ListMembers",
+            Self::ListMetadata => "ListByRestId",
             Self::Following => "Following",
             Self::Followers => "Followers",
         }
@@ -53,6 +55,8 @@ impl Operation {
             Self::Likes => "o000A_Cp4JPOihhbeEgi0g",
             Self::ListPosts => "u6PUF1835XGBkf6MQZUV8A",
             Self::ListMembers => "ljlktihgwXeYTfHwwiPj5A",
+            // Shared chunk 25406, module 913676, operationType=query.
+            Self::ListMetadata => "EAARFZGlY-JHdLJbKZAA5g",
             Self::Following => "4EQGMEhtdVw8NeVBDQHESQ",
             Self::Followers => "sF7aRC2fRq7OGOOp_qHntA",
         }
@@ -70,12 +74,14 @@ impl Operation {
             Self::Bookmarks => "/data/bookmark_timeline_v2/timeline/instructions",
             Self::ListPosts => "/data/list/tweets_timeline/timeline/instructions",
             Self::ListMembers => "/data/list/members_timeline/timeline/instructions",
+            Self::ListMetadata => "/data/list",
         }
     }
     pub fn features(self) -> Value {
         let names = match self {
             Self::Viewer => VIEWER,
             Self::User => USER,
+            Self::ListMetadata => LIST_METADATA,
             _ => POST,
         };
         let mut map = serde_json::Map::new();
@@ -95,7 +101,7 @@ impl Operation {
         Value::Object(map)
     }
     pub fn toggles(self) -> Value {
-        if matches!(self, Self::Bookmarks | Self::ListPosts) {
+        if matches!(self, Self::Bookmarks | Self::ListPosts | Self::ListMetadata) {
             // These reviewed callers supply no field toggles.
             json!({})
         } else if self == Self::Likes {
@@ -107,6 +113,7 @@ impl Operation {
         }
     }
 }
+const LIST_METADATA: &str = "profile_label_improvements_pcf_label_in_post_enabled responsive_web_profile_redirect_enabled rweb_tipjar_consumption_enabled verified_phone_label_enabled responsive_web_graphql_timeline_navigation_enabled";
 const VIEWER: &str = "subscriptions_upsells_api_enabled profile_label_improvements_pcf_label_in_post_enabled responsive_web_profile_redirect_enabled rweb_tipjar_consumption_enabled verified_phone_label_enabled creator_subscriptions_tweet_preview_api_enabled responsive_web_graphql_timeline_navigation_enabled";
 const USER: &str = "hidden_profile_subscriptions_enabled profile_label_improvements_pcf_label_in_post_enabled responsive_web_profile_redirect_enabled rweb_tipjar_consumption_enabled verified_phone_label_enabled subscriptions_verification_info_is_identity_verified_enabled subscriptions_verification_info_verified_since_enabled highlights_tweets_tab_ui_enabled responsive_web_twitter_article_notes_tab_enabled subscriptions_feature_can_gift_premium creator_subscriptions_tweet_preview_api_enabled responsive_web_graphql_timeline_navigation_enabled";
 const POST: &str = "rweb_video_screen_enabled rweb_cashtags_enabled profile_label_improvements_pcf_label_in_post_enabled responsive_web_profile_redirect_enabled rweb_tipjar_consumption_enabled verified_phone_label_enabled creator_subscriptions_tweet_preview_api_enabled responsive_web_graphql_timeline_navigation_enabled premium_content_api_read_enabled communities_web_enable_tweet_community_results_fetch c9s_tweet_anatomy_moderator_badge_enabled responsive_web_grok_analyze_button_fetch_trends_enabled responsive_web_grok_analyze_post_followups_enabled rweb_cashtags_composer_attachment_enabled responsive_web_jetfuel_frame rweb_sports_post_context_enabled responsive_web_grok_share_attachment_enabled responsive_web_grok_annotations_enabled articles_preview_enabled responsive_web_edit_tweet_api_enabled rweb_conversational_replies_downvote_enabled graphql_is_translatable_rweb_tweet_is_translatable_enabled view_counts_everywhere_api_enabled longform_notetweets_consumption_enabled responsive_web_twitter_article_tweet_consumption_enabled content_disclosure_indicator_enabled content_disclosure_ai_generated_indicator_enabled responsive_web_grok_show_grok_translated_post responsive_web_grok_analysis_button_from_backend post_ctas_fetch_enabled freedom_of_speech_not_reach_fetch_enabled standardized_nudges_misinfo tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled longform_notetweets_rich_text_read_enabled longform_notetweets_inline_media_enabled responsive_web_grok_image_annotation_enabled responsive_web_grok_imagine_annotation_enabled responsive_web_grok_community_note_auto_translation_is_enabled responsive_web_enhance_cards_enabled";

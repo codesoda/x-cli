@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-12
+
+### Added
+
+- Experimental `lists show <list-id> --account ...` using the source-reviewed
+  `ListByRestId` GET query. Requires explicit account selection and a canonical
+  positive decimal list ID; verifies Viewer before account-scoped cache access.
+  No paging, discovery, public fallback or mutation transport is enabled.
+- Single-record `lists` metadata output with string ID, name, optional description,
+  visibility and owner, plus canonical list URL and human rendering. Existing
+  post/user JSON stays compatible. Missing visibility is never assumed public;
+  malformed metadata and mismatched IDs fail closed. Completeness applies only
+  to the single metadata record, never to list membership or posts.
+- Synthetic exact-request, parser, redaction, routing, cache-shape/isolation and
+  output compatibility tests, plus a separately ignored installed-binary metadata
+  smoke procedure. Source evidence does not establish live private-list
+  permissions or authenticated interoperability; metadata remains not live-verified.
+
 ## [0.6.0] - 2026-09-12
 
 ### Added

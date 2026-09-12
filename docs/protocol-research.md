@@ -436,6 +436,61 @@ views and other accounts. Unknown/unavailable items fail closed. No membership
 changes or claims of exhaustive membership are included. Source checks were
 anonymous static reads; live list permissions and interoperability are unverified.
 
+### Known-list metadata — 2026-09-12
+
+The same [shared chunk 25406](https://abs.twimg.com/responsive-web/client-web/shared~loader.Dock~bundle.BookmarkFolders~bundle.Bookmarks~bundle.Explore~bundle.HomeTimeline~bundle.Notifica.dd20d1d8c1f4a4bca.js),
+SHA-256 `c208d767c6aacb1ce87e30cfe7df7b3cc0d80471fc15d465b0298a59751b9a50`,
+defines module 913676: `ListByRestId`, query ID `EAARFZGlY-JHdLJbKZAA5g`,
+`operationType:"query"`. Module 776254 binds `F=n(913676),j=n.n(F)` and calls:
+
+```js
+if(n.list_id) e.graphQL(j(),{listId:n.list_id,...(0,o.s)(t)},eb)
+  .then(e=>(0,i.S8)(e.list,s.A))
+```
+
+The shared helper is empty. The adapter's normal GET path transmits exactly
+`{listId}`; there is no force-POST option or field-toggle options argument, so
+`fieldToggles` is omitted, not `{}`. The five declared feature names are exactly:
+
+```text
+profile_label_improvements_pcf_label_in_post_enabled
+responsive_web_profile_redirect_enabled
+rweb_tipjar_consumption_enabled
+verified_phone_label_enabled
+responsive_web_graphql_timeline_navigation_enabled
+```
+
+xcli applies the existing disabled-values policy to these names only. Public
+source observations do not establish authenticated rollout values. The raw root
+is `/data/list`; there is no invented top-level `List` typename requirement.
+
+Current [main.ef8e0e0fdc2bb9c0a.js](https://abs.twimg.com/responsive-web/client-web/main.ef8e0e0fdc2bb9c0a.js),
+SHA-256 `290a24f210c6b7310e3abe0abbf935a748e6b48719db6c9bf30782b44c206e59`,
+module 550018 normalizes with `idAttribute:id_str`, lowercases `mode`, constructs
+`/i/lists/${id_str}`, and uses the current `user_results` branch. The reviewed
+[UserLists UI bundle](https://abs.twimg.com/responsive-web/client-web/bundle.UserLists.295cb90da11794e5a.js),
+SHA-256 `5f7c8bc573263490bedfedcdb4809c8aa3dba85ea2680b9c235c95d723731bfb`,
+corroborates `name`, `description`, and public/private modes. These auxiliary
+assets are source provenance, not new runtime downloads or executed JavaScript.
+The pinned runtime public authorization asset remains unchanged.
+
+The parser requires string `id_str` (never a `rest_id` fallback) and string name,
+checks the returned ID against the requested ID, and allows missing/null
+`description` and `mode`. Known public/private modes are case-normalized;
+unknown or incorrectly typed mode fails, never defaulting to public. Owner is
+optional at `user_results.result`: only `User` with valid string `rest_id` and
+current `core.screen_name` is projected. Absent/unavailable owners are omitted
+from the projection (`owner:null`); malformed known Users fail rather than using
+legacy user guessing. Actor provenance always comes from the verified Viewer,
+not the metadata owner.
+
+This establishes an experimental single metadata record, not list discovery,
+member/post completeness, authorization policy or deletion status. Missing/null
+roots and malformed records are protocol failures. No live list-error taxonomy
+or private-list denial/deletion interpretation has been established. No live
+GraphQL, browser/Keychain access or mutations were performed for this increment;
+permissions and interoperability require separate consented evidence.
+
 ## 3. macOS Chrome credential access: supported boundary
 
 First-party source snapshot: Chromium **`233e625e16284f1f1e11150b88ea16e43c325c37`**, inspected 2026-09-10. This is mainline source, **not a verified installed/released Chrome build**:

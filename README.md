@@ -23,7 +23,7 @@
 
 ## About the project
 
-`xcli` reads posts, parent chains, conversation views, searches, and user timelines. JSON is the default; `--human` renders posts for terminal reading. Post IDs remain strings.
+`xcli` reads posts, parent chains, conversation views, searches, user timelines, relationship collections and known lists. JSON is the default; `--human` renders posts, users and list metadata for terminal reading. IDs remain strings.
 
 **Phase 1 is experimental, not fully live-verified.** Public single-post retrieval has been exercised against FxTwitter. Authenticated operations use source-verified X web-client query definitions. A user-run live smoke test passed post, parent-chain and reply checks, then failed at search with exit 8; timeline testing was not reached. This is partial, user-reported verification—not a claim of full interoperability. Mock tests do not establish live authentication compatibility. See [status and limitations](#status-and-limitations).
 
@@ -118,7 +118,8 @@ xcli bookmarks list --account work --max-pages 2 --no-cache
 # Only this verified account's own liked posts; no target-user or write commands.
 xcli likes list --account work --max-pages 2 --no-cache
 
-# Latest-post view of a known list; use its decimal list ID, not a post URL.
+# Metadata and latest-post view of a known list; use its decimal ID, not a post URL.
+xcli lists show 123456789 --account work --no-cache
 xcli lists posts 123456789 --account work --max-pages 2 --no-cache
 xcli lists members list 123456789 --account work --max-pages 2 --no-cache
 
@@ -156,7 +157,7 @@ Accepted post inputs: positive decimal IDs; `x.com`/`twitter.com` status URLs, i
 | `--refresh` | Skip cache reads, replace result from upstream. |
 | `--no-cache` | Skip cache reads and writes; cannot combine with `--refresh`. |
 | `--data-dir <path>` | Override `~/.xcli` for configuration and cache. |
-| `--human` | Human-readable posts instead of JSON (administrative commands remain formatted JSON). |
+| `--human` | Human-readable posts, users or list metadata instead of JSON (administrative commands remain formatted JSON). |
 
 `bookmarks list` is available starting with v0.2.0, experimental and not live-verified. It requires an explicit
 `--account` even when a default exists; `--connection` may disambiguate that
@@ -178,7 +179,7 @@ no automatic History/other-user/provider fallback.
 **not live-verified**. Supply a positive decimal list ID and explicit `--account`
 (even for a public list); `--connection` may disambiguate that account but does not
 replace it. The command reads the source-defined latest-post view, not ranked
-results or an exhaustive archive. List discovery, metadata, create/update/delete
+results or an exhaustive archive. List discovery, create/update/delete
 and membership-changing commands are not implemented. It reuses the same pagination and
 account-isolated cache controls as bookmarks; private-list content is not
 encrypted at rest. Missing/inaccessible data fails without public fallback.
@@ -199,6 +200,20 @@ experimental, **not live-verified**, user collection with the same explicit
 account/list-ID validation as list-post reads. It returns `users:[{id,handle}]`
 and `posts:[]`, uses account-isolated caching, and never claims exhaustive
 membership. No add/remove membership commands or public fallback are enabled.
+
+`lists show <list-id>` is implemented for v0.7.0 as experimental,
+**not live-verified**, metadata retrieval for one known list. It requires a
+canonical positive decimal list ID and explicit `--account`; neither a default
+nor `--connection` alone suffices. There are no paging flags. Output contains
+`posts:[]`, omits `users`, and adds `lists:[{id,name,description,visibility,owner,url}]`.
+Description, visibility and owner may be `null`; unknown visibility is never
+assumed public. A present owner is metadata, not the authenticated actor.
+`complete:true` / `stop_reason:"single_list"` describes only this single metadata
+record, not membership, posts or discovery. Human output renders metadata and the
+list URL. Existing account-isolated cache controls apply; private metadata is
+**not encrypted at rest**, so use `--no-cache` to avoid content storage.
+Missing/null or malformed list data is a protocol error, not evidence of deletion
+or private-list denial. No public fallback, discovery or mutations are added.
 
 `--backend fxtwitter --account work` and authenticated-only operations on FxTwitter are rejected. There is no automatic provider/account fallback. All requests are bounded by a 30-second timeout and an 8 MiB response limit. There are **no automatic retries**. Rate-limit responses persist a backend/account-scoped cooldown; honor the returned retry advice.
 
@@ -240,6 +255,8 @@ Chrome may prompt for Keychain permission. Denial, unsupported encryption, unkno
 Post/collection results contain:
 
 - `posts`: normalized ID, author ID/handle, text, timestamp when supplied, parent ID/knowledge, canonical URL.
+- User collections add `users`; list metadata adds `lists`. Both use `posts:[]`
+  and omit the other optional collection field. Existing post/user JSON is unchanged.
 - `provenance`: backend, authenticated account ID or `null`, Unix-seconds retrieval timestamp, cache `hit`/`miss`, age in seconds.
 - `complete`, `stop_reason`, `pages`, `next_cursor`, and `warnings`.
 - `parent_chain_complete` / `replies_complete` when applicable, and `request_failed` when a partial result retained data after a failed request.
@@ -250,7 +267,7 @@ Later page failures retain obtained posts, mark partial status, and emit a warni
 
 | Exit | Meaning |
 | --- | --- |
-| 0 | Successful single post, complete parent chain, or administrative operation |
+| 0 | Successful single post/list metadata, complete parent chain, or administrative operation |
 | 2 | Invalid input/flags |
 | 3 | Unavailable post/user; deletion only asserted when provider evidence says so |
 | 4 | Permission denied |
@@ -294,6 +311,7 @@ Errors are JSON on stderr; results are JSON on stdout. GraphQL failures may incl
 | List-post timelines | Experimental latest-post read; synthetic tests only, private-list permissions/live behavior unverified |
 | Following/follower lists | Experimental own-account user collections; synthetic tests only, live behavior unverified |
 | List-member reads | Experimental user collection; synthetic tests only, live permissions unverified |
+| Known-list metadata | Experimental single-record read for v0.7.0; synthetic tests only, live permissions/interoperability unverified |
 | Phase 2 mutations | Unimplemented; [issue #1](https://github.com/codesoda/x-cli/issues/1) |
 
 **Remaining live-verification blockers:** the user-observed search failure and untested timeline stage need further consented local evidence. Broader released-Chrome compatibility, X account-specific feature values, required transaction headers, identity semantics and pagination variants also remain unverified. The current client uses a documented public feature snapshot plus conservative optional-variable choices. It does not fabricate transaction IDs or circumvent browser/OS/network challenges. On rejection, capture only xcli's redacted error kind/exit code and operation name—not cookies or raw responses. See [protocol evidence and attempted alternatives](docs/protocol-research.md) and the [safe local live-verification sequence](docs/live-verification.md).

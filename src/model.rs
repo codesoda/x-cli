@@ -8,6 +8,21 @@ pub struct Identity {
     pub id: String,
     pub handle: String,
 }
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ListVisibility {
+    Public,
+    Private,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ListInfo {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub visibility: Option<ListVisibility>,
+    pub owner: Option<Identity>,
+    pub url: String,
+}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Post {
     pub id: String,
@@ -34,6 +49,9 @@ pub struct Output {
     /// Present (including an empty array) only for user collections. Post output stays compatible.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub users: Option<Vec<Identity>>,
+    /// Present only for list metadata; legacy post/user output stays compatible.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lists: Option<Vec<ListInfo>>,
     pub provenance: Provenance,
     pub complete: bool,
     #[serde(default)]
@@ -58,6 +76,7 @@ impl Output {
         Self {
             posts: vec![],
             users: None,
+            lists: None,
             provenance: Provenance {
                 backend: backend.into(),
                 account_id,

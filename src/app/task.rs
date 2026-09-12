@@ -16,6 +16,7 @@ pub(super) enum Task {
     Likes(Paging),
     ListPosts(String, Paging),
     ListMembers(String, Paging),
+    ListMetadata(String),
     Relationships { followers: bool, paging: Paging },
 }
 impl Task {
@@ -104,6 +105,12 @@ impl Task {
                 (access, Task::Likes(paging.clone()))
             }
             Command::Lists {
+                command: ListsCommand::Show { list_id, access },
+            } => (
+                access,
+                Task::ListMetadata(list_id_for_account(list_id, access)?),
+            ),
+            Command::Lists {
                 command:
                     ListsCommand::Posts {
                         list_id,
@@ -122,22 +129,7 @@ impl Task {
                             },
                     },
             } => {
-                if access
-                    .account
-                    .as_deref()
-                    .is_none_or(|value| value.is_empty())
-                {
-                    return Err(Error::new(
-                        Kind::InvalidInput,
-                        "List reads require an explicit --account selector",
-                    ));
-                }
-                let id = crate::input::id(list_id).map_err(|_| {
-                    Error::new(
-                        Kind::InvalidInput,
-                        "Expected a positive decimal list ID (at most 20 digits)",
-                    )
-                })?;
+                let id = list_id_for_account(list_id, access)?;
                 let task = if matches!(
                     command,
                     Command::Lists {
@@ -181,7 +173,7 @@ impl Task {
     }
     pub(super) fn validate(&self) -> Result<()> {
         let paging = match self {
-            Self::Read(_) => return Ok(()),
+            Self::Read(_) | Self::ListMetadata(_) => return Ok(()),
             Self::Thread(_, _, _, p)
             | Self::Search(_, p)
             | Self::Timeline(_, p)
@@ -212,6 +204,7 @@ impl Task {
                 | Self::Likes(..)
                 | Self::ListPosts(..)
                 | Self::ListMembers(..)
+                | Self::ListMetadata(..)
                 | Self::Relationships { .. }
                 | Self::Thread(_, _, true, _)
         )
@@ -219,13 +212,18 @@ impl Task {
     pub(super) fn expects_users(&self) -> bool {
         matches!(self, Self::Relationships { .. } | Self::ListMembers(..))
     }
+    pub(super) fn expects_lists(&self) -> bool {
+        matches!(self, Self::ListMetadata(..))
+    }
     pub(super) fn accepts_cached(&self, output: &crate::model::Output) -> bool {
         output.users.is_some() == self.expects_users()
-            && (!self.expects_users() || output.posts.is_empty())
+            && output.lists.is_some() == self.expects_lists()
+            && (!(self.expects_users() || self.expects_lists()) || output.posts.is_empty())
     }
     pub(super) fn key(&self) -> String {
         match self {
             Self::Read(id) => json!(["v1", "read", id]).to_string(),
+            Self::ListMetadata(id) => json!(["v1", "list_metadata", id]).to_string(),
             Self::Thread(id, max, replies, p) => json!([
                 "v1",
                 "thread",
@@ -275,4 +273,23 @@ impl Task {
             .to_string(),
         }
     }
+}
+
+fn list_id_for_account(list_id: &str, access: &Access) -> Result<String> {
+    if access
+        .account
+        .as_deref()
+        .is_none_or(|value| value.is_empty())
+    {
+        return Err(Error::new(
+            Kind::InvalidInput,
+            "List reads require an explicit --account selector",
+        ));
+    }
+    crate::input::id(list_id).map_err(|_| {
+        Error::new(
+            Kind::InvalidInput,
+            "Expected a positive decimal list ID (at most 20 digits)",
+        )
+    })
 }

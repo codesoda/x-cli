@@ -10,6 +10,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
 
+mod list_metadata;
 mod parsing;
 mod users;
 pub use parsing::{check_errors, parse_identity, parse_page, parse_post};
@@ -70,6 +71,7 @@ impl<'a> Graphql<'a> {
                 | Operation::Bookmarks
                 | Operation::ListPosts
                 | Operation::ListMembers
+                | Operation::ListMetadata
         ) {
             url.query_pairs_mut()
                 .append_pair("fieldToggles", &op.toggles().to_string());
@@ -151,6 +153,21 @@ impl<'a> Graphql<'a> {
         o.stop_reason = "single_post".into();
         o.warnings.push("Unofficial source-verified protocol; authenticated rollout interoperability is not guaranteed".into());
         Ok(o)
+    }
+    pub fn list_metadata(&self, id: &str, account: &str) -> Result<Output> {
+        crate::input::id(id)?;
+        let list =
+            list_metadata::parse(&self.query(Operation::ListMetadata, json!({"listId":id}))?)?;
+        if list.id != id {
+            return Err(protocol());
+        }
+        let mut output = Output::new("graphql", Some(account.into()));
+        output.lists = Some(vec![list]);
+        output.pages = 1;
+        output.complete = true;
+        output.stop_reason = "single_list".into();
+        output.warnings.push("Unofficial source-verified protocol; authenticated rollout interoperability is not guaranteed".into());
+        Ok(output)
     }
     pub fn users_page(
         &self,

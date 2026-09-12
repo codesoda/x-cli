@@ -206,6 +206,30 @@ checks the users output shape without printing identities. No member is added
 or removed. This procedure has not been run by the agent; unknown list access or
 item shapes fail closed rather than being called empty successes.
 
+## Separate known-list metadata smoke test
+
+For a trusted v0.7.0 binary, `authenticated_list_metadata_smoke` is separately
+ignored and is not added to any collection smoke sequence. It requires the same
+explicit account/profile/connection consent and CI refusal as the list-post test,
+plus `XCLI_LIVE_LIST_ID`, validated before credential loading. A consenting user
+may select it locally after checking the installed binary's version:
+
+```sh
+XCLI_LIVE=1 XCLI_LIVE_AUTH=1 \
+XCLI_LIVE_ACCOUNT=work XCLI_LIVE_PROFILE=Default XCLI_LIVE_LIST_ID=123456789 \
+XCLI_LIVE_BINARY="$HOME/.local/bin/xcli" \
+cargo test --locked --features live-tests --test live authenticated_list_metadata_smoke -- --ignored --test-threads=1
+```
+
+This executes `lists show` without paging flags and with `--no-cache`, checks one
+metadata record, the requested string ID, list URL and Viewer-account provenance,
+and withholds all metadata/owner values. `complete:true` means a single metadata
+record only. An optional metadata owner is not the actor or permission evidence;
+missing visibility is not public. The existing installed-binary helper retains
+cooldowns and forwards only typed diagnostics. Stop on failure, identity
+uncertainty, rate limits or denial; no alternate account/provider or mutation is
+attempted. This is a procedure, **not live evidence**; the agent has not run it.
+
 ## Verification evidence
 
 On 2026-09-10, the original public checks passed before moving into this

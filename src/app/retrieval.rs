@@ -65,7 +65,7 @@ pub(super) fn execute(
         // Identity verification always precedes authenticated cache access.
         if let Some(hit) = cached(cache, access, "graphql", account, &key)?.filter(|hit| {
             // Old binaries can discard newly added fields while rewriting a scope.
-            // A missing users array is not an empty relationship collection.
+            // Missing users/lists arrays are not successful empty typed results.
             task.accepts_cached(hit)
         }) {
             hit
@@ -74,6 +74,9 @@ pub(super) fn execute(
                 |id: &str| rate_call(cache, "graphql", account, || graph.read(id, &actual.id));
             let out = match &task {
                 Task::Read(id) => fetch(id)?,
+                Task::ListMetadata(id) => rate_call(cache, "graphql", account, || {
+                    graph.list_metadata(id, &actual.id)
+                })?,
                 Task::Thread(id, max, replies, paging) => {
                     let mut chain = pagination::parents(fetch(id)?, *max, fetch)?;
                     if *replies {
