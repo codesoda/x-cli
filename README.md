@@ -60,7 +60,7 @@ checks that the archive contains exactly the `xcli` binary reporting the expecte
 version, and installs atomically to `~/.local/bin/xcli` without sudo. Add
 `~/.local/bin` to PATH. To inspect before executing, download `install.sh` first
 and run it with `sh install.sh --release` (see `sh install.sh --help` for the
-full mode and environment contract). Set `XCLI_VERSION=v0.1.3` to pin a release,
+full mode and environment contract). Set `XCLI_VERSION=v0.2.0` to pin a release,
 or `XCLI_INSTALL_DIR=/your/bin` to choose the destination. Downloads are
 anonymous `curl` by default (`XCLI_DOWNLOAD_MODE=auto|curl`); set
 `XCLI_DOWNLOAD_MODE=gh` to use an authenticated GitHub CLI instead. Archives and
@@ -112,6 +112,9 @@ xcli thread 20 --account work --replies --max-pages 3
 xcli search "from:codesoda rust" --account work --max-pages 2 --page-size 20
 xcli user posts codesoda --account work --max-pages 2
 
+# Private bookmark reads require an explicit account; no add/remove commands.
+xcli bookmarks list --account work --max-pages 2 --no-cache
+
 # Resume an upstream view using the returned opaque cursor.
 xcli search "rust" --account work --cursor '<next_cursor>' --max-pages 1
 
@@ -143,6 +146,14 @@ Accepted post inputs: positive decimal IDs; `x.com`/`twitter.com` status URLs, i
 | `--no-cache` | Skip cache reads and writes; cannot combine with `--refresh`. |
 | `--data-dir <path>` | Override `~/.xcli` for configuration and cache. |
 | `--human` | Human-readable posts instead of JSON (administrative commands remain formatted JSON). |
+
+`bookmarks list` is available starting with v0.2.0, experimental and not live-verified. It requires an explicit
+`--account` even when a default exists; `--connection` may disambiguate that
+account but cannot replace the account selector. It uses the same text-only post
+model, pagination bounds and conservative incomplete-collection output as search.
+Bookmark folders and add/remove operations are not implemented. Cached bookmarks
+are private account-scoped data but are **not encrypted at rest**; use `--no-cache`
+to avoid content storage.
 
 `--backend fxtwitter --account work` and authenticated-only operations on FxTwitter are rejected. There is no automatic provider/account fallback. All requests are bounded by a 30-second timeout and an 8 MiB response limit. There are **no automatic retries**. Rate-limit responses persist a backend/account-scoped cooldown; honor the returned retry advice.
 
@@ -211,7 +222,7 @@ Errors are JSON on stderr; results are JSON on stdout. GraphQL failures may incl
 
 ## Security and caching
 
-- Phase 1 exposes **only GET read queries**. No posting, DMs, likes, follows, bookmarks, list mutations, account/proxy rotation, or browser-session switching.
+- Phase 1 exposes **only GET read queries**. No posting, DMs, likes, follows, bookmark mutations, list mutations, account/proxy rotation, or browser-session switching.
 - OS-supported, in-process Keychain retrieval; only necessary X cookies are selected. No shell-based secret output, persistent cookie export, or protection bypass.
 - Only supported Chrome schema/encryption variants are decoded. Chromium source evidence and remaining compatibility questions are recorded in [Protocol research](docs/protocol-research.md).
 - Secrets are excluded from serialization/debug/error output and practical owned buffers are zeroized. This is not a guarantee against memory inspection, OS swap, or a compromised machine.
@@ -233,6 +244,7 @@ Errors are JSON on stderr; results are JSON on stdout. GraphQL failures may incl
 | Media, quotes, metrics, articles | Not normalized in this initial text-focused model; no promise of full rich-post fidelity |
 | Self-update (`xcli update`) | Available starting with v0.1.2; offline-tested, explicit-only updates |
 | Other browser/OS authentication | Unsupported |
+| Bookmark listing | Experimental authenticated read; synthetic tests only, no live verification |
 | Phase 2 mutations | Unimplemented; [issue #1](https://github.com/codesoda/x-cli/issues/1) |
 
 **Remaining live-verification blockers:** the user-observed search failure and untested timeline stage need further consented local evidence. Broader released-Chrome compatibility, X account-specific feature values, required transaction headers, identity semantics and pagination variants also remain unverified. The current client uses a documented public feature snapshot plus conservative optional-variable choices. It does not fabricate transaction IDs or circumvent browser/OS/network challenges. On rejection, capture only xcli's redacted error kind/exit code and operation name—not cookies or raw responses. See [protocol evidence and attempted alternatives](docs/protocol-research.md) and the [safe local live-verification sequence](docs/live-verification.md).

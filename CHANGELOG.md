@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-12
+
+### Added
+
+- Experimental read-only `bookmarks list --account <alias|@handle>` with a
+  source-reviewed GET query, bounded pagination, JSON/human output and private
+  account-isolated caching. Requires an explicit account, verifies its stable
+  identity before cache/upstream content access, and never uses a public fallback
+  or claims exhaustive completeness. Bookmark add/remove and folders are not
+  implemented. Synthetic tests and a separately opt-in installed-binary smoke
+  procedure are provided; authenticated bookmark interoperability is unverified.
+
 ## [0.1.3] - 2026-09-12
 
 ### Added

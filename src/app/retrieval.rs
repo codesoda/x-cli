@@ -122,6 +122,16 @@ pub(super) fn execute(
                         })
                     },
                 )?,
+                Task::Bookmarks(paging) => pagination::collect(
+                    Output::new("graphql", Some(actual.id.clone())),
+                    paging.max_pages,
+                    paging.cursor.clone(),
+                    |cursor| {
+                        rate_call(cache, "graphql", account, || {
+                            graph.page(Operation::Bookmarks, "", paging.page_size, cursor)
+                        })
+                    },
+                )?,
                 Task::Timeline(handle, paging) => {
                     let user = rate_call(cache, "graphql", account, || graph.user(handle))?;
                     pagination::collect(

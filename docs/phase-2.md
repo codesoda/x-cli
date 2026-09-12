@@ -1,6 +1,26 @@
-# Phase 2 — Account management (not implemented)
+# Phase 2 — Account management
 
-Phase 1 remains read-only. Track future authenticated account-management capabilities separately; posting and DMs remain out of scope.
+Phase 2 development was explicitly authorized on 2026-09-12. Live X mutations
+were not authorized. The first increment is read-only `bookmarks list`; bookmark
+writes, lists, likes, and follows remain future work. Posting and DMs remain out
+of scope. Source verification and offline tests must not be presented as live
+interoperability.
+
+## First increment: bookmark reads
+
+Acceptance criteria:
+- `xcli bookmarks list --account <alias|@handle>`; a default account or
+  `--connection` alone is insufficient for this private-data command.
+- GraphQL only, with stable identity verified before private cache or upstream
+  content access; no public or alternate-account fallback.
+- Existing bounded `--max-pages`, `--page-size`, `--cursor`, cache controls and
+  JSON/human output semantics; cursor exhaustion never implies completeness.
+- Cache keys distinguish bookmark reads and pagination; content stays inside
+  the existing backend/stable-account scope, with private permissions and purge
+  controls. Content is not encrypted at rest; use `--no-cache` when appropriate.
+- Source-reviewed GET query, synthetic request/parser/failure tests, and explicit
+  user-run live verification kept separate. Never enable add/remove or folders
+  incidentally while adding list support.
 
 ## Scope
 - [ ] Lists: view, create, update, delete, and manage membership.

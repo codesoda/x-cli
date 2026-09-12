@@ -3,8 +3,8 @@
 `tests/live.rs` is a separate Cargo integration-test target gated by the
 **`live-tests`** feature. Every network/browser test also has `#[ignore]` and a
 runtime opt-in guard. Normal `cargo test`, even `cargo test --all-features`, does
-not perform live work. The feature-enabled target has one ordinary offline test
-for its guards.
+not perform live work. The feature-enabled target has ordinary offline tests
+for consent/CI guards, diagnostic redaction and executable selection.
 
 The live tests refuse execution when common CI markers are present (`CI`,
 `GITHUB_ACTIONS`, `GITLAB_CI`, `TF_BUILD`, `JENKINS_URL`, `BUILDKITE`). Do not add
@@ -111,6 +111,28 @@ Do not use `--show-output`, instrument raw HTTP dumps or attach captured
 responses to issues. If a test fails, share only the test/stage name, redacted
 error kind/exit code and Chrome/macOS versions. Inspect further output only
 locally, never by sending credentials/private payloads to a model.
+
+## Separate private bookmark smoke test
+
+`authenticated_bookmark_smoke` is separately ignored and never added to the
+existing read/search/timeline smoke sequence. It requires the same explicit
+local consent, registered account/profile, identity checks and CI refusal. It
+requests one page of five bookmarks, accepts a valid empty collection, requires
+conservative incomplete output, and withholds all captured private post data.
+No content cache is written; existing cooldowns are preserved.
+
+After installing v0.2.0 or newer with `bookmarks list`, run yourself locally only if
+you consent to that private read (replace the account/profile as appropriate):
+
+```sh
+XCLI_LIVE=1 XCLI_LIVE_AUTH=1 \
+XCLI_LIVE_ACCOUNT=work XCLI_LIVE_PROFILE=Default \
+XCLI_LIVE_BINARY="$HOME/.local/bin/xcli" \
+cargo test --locked --features live-tests --test live authenticated_bookmark_smoke -- --ignored --test-threads=1
+```
+
+This is a procedure, not recorded live evidence. The agent has not run it.
+Do not share raw bookmark content, cookies, headers, or response bodies.
 
 ## Verification evidence
 

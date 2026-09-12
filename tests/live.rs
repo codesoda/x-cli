@@ -216,9 +216,7 @@ fn public_manifest() {
     );
 }
 
-#[test]
-#[ignore = "local authenticated test; requires consent and explicit registered account/profile"]
-fn authenticated_read_smoke() {
+fn authenticated_connection() -> (PathBuf, String, xcli::config::Connection) {
     require_opt_in(true);
     // Capability check only; constructing Chrome does not inspect its profile or Keychain.
     xcli::credentials::Chrome::system()
@@ -234,6 +232,45 @@ fn authenticated_read_smoke() {
         connection.profile == profile,
         "Selected connection does not match XCLI_LIVE_PROFILE; no credentials loaded"
     );
+    (root, account, connection.clone())
+}
+
+#[test]
+#[ignore = "local private bookmark test; requires consent and explicit registered account/profile"]
+fn authenticated_bookmark_smoke() {
+    let (root, account, connection) = authenticated_connection();
+    let output = run(
+        &root,
+        &[
+            "bookmarks",
+            "list",
+            "--account",
+            &account,
+            "--connection",
+            &connection.id,
+            "--max-pages",
+            "1",
+            "--page-size",
+            "5",
+        ],
+        "authenticated bookmarks",
+    );
+    assert!(output.provenance.backend == "graphql");
+    assert!(
+        output.provenance.account_id.as_ref() == Some(&connection.identity.id),
+        "Account provenance mismatch; values withheld"
+    );
+    assert!(
+        output.pages == 1 && !output.complete,
+        "Bookmark collection must be bounded and conservatively incomplete"
+    );
+    // Empty bookmarks are valid. No private post text/IDs are ever printed.
+}
+
+#[test]
+#[ignore = "local authenticated test; requires consent and explicit registered account/profile"]
+fn authenticated_read_smoke() {
+    let (root, account, connection) = authenticated_connection();
     let expected_id = &connection.identity.id;
     // One sequential test: stop immediately on failure/rate limit, never rotate accounts.
     // Existing state is retained so cooldowns survive test failures and subsequent runs.

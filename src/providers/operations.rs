@@ -12,6 +12,7 @@ pub enum Operation {
     Search,
     User,
     Timeline,
+    Bookmarks,
 }
 impl Operation {
     pub fn name(self) -> &'static str {
@@ -22,6 +23,7 @@ impl Operation {
             Self::Search => "SearchTimeline",
             Self::User => "UserByScreenName",
             Self::Timeline => "UserTweets",
+            Self::Bookmarks => "Bookmarks",
         }
     }
     pub fn id(self) -> &'static str {
@@ -32,6 +34,8 @@ impl Operation {
             Self::Search => "KPSo2_UWdOMpPJwjhfT1Qg",
             Self::User => "KybxDj9RrADIITXlGG8kpw",
             Self::Timeline => "OeFjWKHutsuyWXZGmLr02A",
+            // Separately reviewed shared Bookmarks chunk; see protocol-research.md.
+            Self::Bookmarks => "tF6KOjmZM0WGcB2Q0mfwhw",
         }
     }
     pub fn root(self) -> &'static str {
@@ -42,6 +46,7 @@ impl Operation {
             Self::Search => "/data/search_by_raw_query/search_timeline/timeline/instructions",
             Self::User => "/data/user/result",
             Self::Timeline => "/data/user/result/timeline/timeline/instructions",
+            Self::Bookmarks => "/data/bookmark_timeline_v2/timeline/instructions",
         }
     }
     pub fn features(self) -> Value {
@@ -67,7 +72,10 @@ impl Operation {
         Value::Object(map)
     }
     pub fn toggles(self) -> Value {
-        if self == Self::Viewer {
+        if self == Self::Bookmarks {
+            // The reviewed fetchBookmarksTimeline call supplies no field toggles.
+            json!({})
+        } else if self == Self::Viewer {
             json!({"isDelegate":false,"withAuxiliaryUserLabels":false,"withPayments":false})
         } else {
             json!({"withAuxiliaryUserLabels":false,"withPayments":false})
