@@ -94,9 +94,13 @@ fn content(value: &Value, page: &mut UsersPage) -> Result<()> {
     Err(protocol().at(Diagnostic::TimelineEntry))
 }
 fn item(value: &Value, page: &mut UsersPage) -> Result<()> {
-    if value.get("promotedMetadata").is_some() {
-        page.warnings.push("Promoted user omitted".into());
-        return Ok(());
+    if value
+        .get("promotedMetadata")
+        .is_some_and(|metadata| !metadata.is_null())
+    {
+        // No promotion schema is verified for relationship items. Do not turn
+        // malformed/promoted data into a cacheable empty relationship result.
+        return Err(protocol().at(Diagnostic::TimelineItem));
     }
     match value["itemType"].as_str() {
         Some("TimelineUser") => {

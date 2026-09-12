@@ -134,6 +134,35 @@ fn relationship_parser_requires_current_core_and_user_item_shape() {
     assert!(users::parse_users_page(&json!([{"type":"TimelineRemoveEntries"}])).is_err());
 }
 #[test]
+fn relationship_promotion_metadata_never_bypasses_item_validation() {
+    let wrap = |item: Value| json!([{"type":"TimelineAddEntries","entries":[{"content":{"itemContent":item}}]}]);
+    let mut null_metadata = item();
+    null_metadata["promotedMetadata"] = Value::Null;
+    assert_eq!(
+        users::parse_users_page(&wrap(null_metadata))
+            .unwrap()
+            .users
+            .len(),
+        1
+    );
+    for metadata in [json!({}), json!("SYNTHETIC_SECRET"), json!(false)] {
+        let mut value = item();
+        value["promotedMetadata"] = metadata;
+        let error = users::parse_users_page(&wrap(value)).err().unwrap();
+        assert_eq!(error.diagnostic, Some(Diagnostic::TimelineItem));
+        assert!(
+            !serde_json::to_string(&error)
+                .unwrap()
+                .contains("SYNTHETIC_SECRET")
+        );
+    }
+    assert!(
+        users::parse_users_page(&wrap(json!({"itemType":"Unknown","promotedMetadata":null})))
+            .is_err()
+    );
+}
+
+#[test]
 fn relationships_reject_bad_roots_and_http_errors() {
     let session = Session::new("synthetic-auth".into(), "synthetic-csrf".into()).unwrap();
     let mut wrong = timeline();
