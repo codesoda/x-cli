@@ -207,8 +207,8 @@ SHA-256 `ba857ea02535f311863f0b092c9d9a96ed76a3956496a0135b1f3d1428455cdd`.
 The query has no `forcePost`; the normal adapter uses GET with JSON variables,
 features, and `content-type: application/json`. The implemented variable shape
 is `{count, cursor?, includePromotedContent:true}`: no user ID, voice flag,
-folder selector, or call-site field toggles. The request supplies an empty
-field-toggle object. Its declared 39 feature names exactly match post set P,
+folder selector, or call-site field toggles. The request omits the `fieldToggles`
+parameter (corrected in v0.5.1 after direct adapter reinspection). Its declared 39 feature names exactly match post set P,
 and its eight declared toggles match the other collection operations. Reusing
 feature membership is source-supported; authenticated values remain unverified.
 
@@ -307,7 +307,7 @@ flag is not transmitted and no ranked operation/fallback is implemented. The
 shared-variable helper is again the empty vendor export. Transmitted variables
 are exactly `{listId,count,cursor?}`. No user ID, promoted-content flag or voice
 flag is supplied. The call has no force-POST options or field toggles: the
-adapter uses GET and an empty toggle object. The 39 declared feature names
+adapter uses GET and omits the `fieldToggles` parameter (corrected in v0.5.1). The 39 declared feature names
 exactly match P (including order), verified against the independent bookmark
 fixture; authenticated boolean values remain unverified.
 
@@ -384,6 +384,27 @@ already recorded above, with no credentials, JS execution, GraphQL requests or
 mutations. Live availability, authentication/transaction requirements, account
 features, server permissions and complete pagination variants remain unverified.
 Neither cursor exhaustion nor a returned count proves an exhaustive social graph.
+
+### Correction: absent field-toggle options — 2026-09-12
+
+Direct reinspection of the hashed current main adapter found:
+
+```js
+let p=function(e,t){if(e&&e.length>0&&t){let r={};
+  return e.forEach(e=>{t?.hasOwnProperty(e)&&(r[e]=t?.[e])}),r}}
+  (e?.fieldToggles,_?.fieldToggles);
+// GET request construction:
+t&&(u.fieldToggles=JSON.stringify(t))
+```
+
+Without caller options, the filtered toggle value is undefined, so the URL
+parameter is omitted. Earlier bookmark/list research summaries incorrectly
+inferred an empty object from declared metadata. v0.2.0–v0.5.0 sent `{}` for
+Bookmarks, and v0.4.0–v0.5.0 did so for ListLatestTweetsTimeline. v0.5.1 omits
+those parameters, with exact request regression tests. Following/Followers
+already omit them; Likes retains its explicit `withArticlePlainText:false`.
+This fixes an established source-contract discrepancy, not a proven cause of any
+live failure. Query IDs, features, methods and credential boundaries are unchanged.
 
 ## 3. macOS Chrome credential access: supported boundary
 

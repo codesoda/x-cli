@@ -105,6 +105,14 @@ xcli following add @someone --account work
 xcli following remove @someone --account work
 ```
 
+## Mutation activation blockers
+
+See [mutation-safety.md](mutation-safety.md) for the planned disabled-by-default
+policy/journal/invalidation foundation and reviewed bookmark POST definitions.
+Bookmark writes remain blocked on authoritative exact-post reconciliation and
+supported session-binding requirements; no live mutation is authorized. Bounded
+read collections cannot establish absence for retries.
+
 ## Required safeguards / acceptance criteria
 - [ ] Writes disabled by default; explicit opt-in per account.
 - [ ] Every mutation requires explicit `--account <@handle|alias>` and identity validation against the stable pinned account ID.
