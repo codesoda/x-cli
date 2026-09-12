@@ -18,6 +18,7 @@ pub enum Operation {
     Bookmarks,
     Likes,
     ListPosts,
+    ListMembers,
     Following,
     Followers,
 }
@@ -33,6 +34,7 @@ impl Operation {
             Self::Bookmarks => "Bookmarks",
             Self::Likes => "Likes",
             Self::ListPosts => "ListLatestTweetsTimeline",
+            Self::ListMembers => "ListMembers",
             Self::Following => "Following",
             Self::Followers => "Followers",
         }
@@ -50,6 +52,7 @@ impl Operation {
             // Reviewed current main's Likes query; not an arbitrary-user capability.
             Self::Likes => "o000A_Cp4JPOihhbeEgi0g",
             Self::ListPosts => "u6PUF1835XGBkf6MQZUV8A",
+            Self::ListMembers => "ljlktihgwXeYTfHwwiPj5A",
             Self::Following => "4EQGMEhtdVw8NeVBDQHESQ",
             Self::Followers => "sF7aRC2fRq7OGOOp_qHntA",
         }
@@ -66,6 +69,7 @@ impl Operation {
             }
             Self::Bookmarks => "/data/bookmark_timeline_v2/timeline/instructions",
             Self::ListPosts => "/data/list/tweets_timeline/timeline/instructions",
+            Self::ListMembers => "/data/list/members_timeline/timeline/instructions",
         }
     }
     pub fn features(self) -> Value {

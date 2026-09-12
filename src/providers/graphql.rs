@@ -69,6 +69,7 @@ impl<'a> Graphql<'a> {
                 | Operation::Followers
                 | Operation::Bookmarks
                 | Operation::ListPosts
+                | Operation::ListMembers
         ) {
             url.query_pairs_mut()
                 .append_pair("fieldToggles", &op.toggles().to_string());
@@ -154,19 +155,26 @@ impl<'a> Graphql<'a> {
     pub fn users_page(
         &self,
         op: Operation,
-        account_id: &str,
+        target_id: &str,
         count: u32,
         cursor: Option<&str>,
     ) -> Result<crate::pagination::UsersPage> {
-        if !matches!(op, Operation::Following | Operation::Followers) {
+        if !matches!(
+            op,
+            Operation::Following | Operation::Followers | Operation::ListMembers
+        ) {
             return Err(Error::new(
                 Kind::Unsupported,
                 "This query is not a user collection",
             ));
         }
-        crate::input::id(account_id)?;
-        let mut variables = json!({"userId":account_id,"count":count,
-            "includePromotedContent":false,"withGrokTranslatedBio":false});
+        crate::input::id(target_id)?;
+        let mut variables = if op == Operation::ListMembers {
+            json!({"listId":target_id,"count":count})
+        } else {
+            json!({"userId":target_id,"count":count,
+                "includePromotedContent":false,"withGrokTranslatedBio":false})
+        };
         if let Some(cursor) = cursor {
             if cursor.is_empty() || cursor.len() > 4096 {
                 return Err(Error::new(

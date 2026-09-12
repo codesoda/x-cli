@@ -406,6 +406,36 @@ already omit them; Likes retains its explicit `withArticlePlainText:false`.
 This fixes an established source-contract discrepancy, not a proven cause of any
 live failure. Query IDs, features, methods and credential boundaries are unchanged.
 
+### List-member reads — 2026-09-12
+
+The same hash-verified shared chunk 25406 used for latest-list posts
+(`c208d767c6aacb1ce87e30cfe7df7b3cc0d80471fc15d465b0298a59751b9a50`)
+defines module 488153: `ListMembers`, ID `ljlktihgwXeYTfHwwiPj5A`, type `query`.
+Module 776254 binds `O=n(488153),S=n.n(O)` and calls:
+
+```js
+fetchMembersGraphQL(n,i){let{count:r,cursor:a,listId:s}=n;
+  return e.graphQL(S(),{listId:s,count:r,cursor:a,...(0,o.g)(t)},ew)
+    .then(e=>e.list.members_timeline?.timeline||ei.yB)}
+```
+
+The shared helper is empty; `ew` rejects a missing
+`list.members_timeline.timeline`. The raw root is
+`/data/list/members_timeline/timeline/instructions`, with no invented owner
+User/List discriminator. The caller's timeline factory uses formatter 225219,
+context `FETCH_MEMBERS`, and parameters `{count,cursor?,listId}`; only string
+cursors pass through. Normal user items therefore use the same reviewed
+`TimelineUser`/`user_results.result` projection documented above.
+
+The 39 feature names match the independent post-set fixture exactly. No fourth
+options argument or force-POST option is supplied: GET with no `fieldToggles`
+parameter, following the corrected adapter evidence above. No user ID, ranked,
+voice or promoted-content variable is transmitted. xcli requires an explicit
+account and validated list ID; its cache separates member views from list-post
+views and other accounts. Unknown/unavailable items fail closed. No membership
+changes or claims of exhaustive membership are included. Source checks were
+anonymous static reads; live list permissions and interoperability are unverified.
+
 ## 3. macOS Chrome credential access: supported boundary
 
 First-party source snapshot: Chromium **`233e625e16284f1f1e11150b88ea16e43c325c37`**, inspected 2026-09-10. This is mainline source, **not a verified installed/released Chrome build**:

@@ -59,6 +59,125 @@ fn list_posts_validate_account_id_and_route_before_external_access() {
 }
 
 #[test]
+fn list_members_validate_private_routing_and_user_cache_keys() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().canonicalize().unwrap();
+    for args in [
+        vec!["lists", "members", "list", "456"],
+        vec![
+            "lists",
+            "members",
+            "list",
+            "456",
+            "--connection",
+            "connection-1",
+        ],
+        vec!["lists", "members", "list", "0", "--account", "work"],
+        vec!["lists", "members", "list", "01", "--account", "work"],
+        vec![
+            "lists",
+            "members",
+            "list",
+            "https://x.com/i/lists/456",
+            "--account",
+            "work",
+        ],
+        vec![
+            "lists",
+            "members",
+            "list",
+            "456",
+            "--account",
+            "work",
+            "--cursor",
+            "",
+        ],
+    ] {
+        assert_eq!(command(&root, &args).unwrap_err().kind, Kind::InvalidInput);
+    }
+    assert_eq!(
+        command(
+            &root,
+            &[
+                "lists",
+                "members",
+                "list",
+                "456",
+                "--account",
+                "work",
+                "--backend",
+                "fxtwitter"
+            ]
+        )
+        .unwrap_err()
+        .kind,
+        Kind::Unsupported
+    );
+    let key = |argv: Vec<&str>| {
+        let cli = Cli::try_parse_from(argv).unwrap();
+        let (_, task) = task::Task::from_command(&cli.command).unwrap();
+        (task.key(), task.expects_users())
+    };
+    let baseline = key(vec![
+        "xcli",
+        "lists",
+        "members",
+        "list",
+        "456",
+        "--account",
+        "work",
+    ]);
+    assert!(baseline.1);
+    for args in [
+        vec![
+            "xcli",
+            "lists",
+            "members",
+            "list",
+            "457",
+            "--account",
+            "work",
+        ],
+        vec![
+            "xcli",
+            "lists",
+            "members",
+            "list",
+            "456",
+            "--account",
+            "work",
+            "--cursor",
+            "next",
+        ],
+        vec![
+            "xcli",
+            "lists",
+            "members",
+            "list",
+            "456",
+            "--account",
+            "work",
+            "--max-pages",
+            "2",
+        ],
+        vec![
+            "xcli",
+            "lists",
+            "members",
+            "list",
+            "456",
+            "--account",
+            "work",
+            "--page-size",
+            "5",
+        ],
+        vec!["xcli", "lists", "posts", "456", "--account", "work"],
+    ] {
+        assert_ne!(baseline.0, key(args).0);
+    }
+}
+
+#[test]
 fn list_posts_cli_excludes_ranked_and_mutation_commands() {
     let cli = Cli::try_parse_from(["xcli", "lists", "posts", "456", "--account", "work"]).unwrap();
     let (_, task) = task::Task::from_command(&cli.command).unwrap();

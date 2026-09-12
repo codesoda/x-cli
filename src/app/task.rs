@@ -1,7 +1,7 @@
 use crate::{
     cli::{
-        Access, BookmarkCommand, Command, LikesCommand, ListsCommand, Paging, RelationshipCommand,
-        UserCommand,
+        Access, BookmarkCommand, Command, LikesCommand, ListMembersCommand, ListsCommand, Paging,
+        RelationshipCommand, UserCommand,
     },
     error::{Error, Kind, Result},
 };
@@ -15,6 +15,7 @@ pub(super) enum Task {
     Bookmarks(Paging),
     Likes(Paging),
     ListPosts(String, Paging),
+    ListMembers(String, Paging),
     Relationships { followers: bool, paging: Paging },
 }
 impl Task {
@@ -109,6 +110,17 @@ impl Task {
                         access,
                         paging,
                     },
+            }
+            | Command::Lists {
+                command:
+                    ListsCommand::Members {
+                        command:
+                            ListMembersCommand::List {
+                                list_id,
+                                access,
+                                paging,
+                            },
+                    },
             } => {
                 if access
                     .account
@@ -117,7 +129,7 @@ impl Task {
                 {
                     return Err(Error::new(
                         Kind::InvalidInput,
-                        "List-post reads require an explicit --account selector",
+                        "List reads require an explicit --account selector",
                     ));
                 }
                 let id = crate::input::id(list_id).map_err(|_| {
@@ -126,7 +138,17 @@ impl Task {
                         "Expected a positive decimal list ID (at most 20 digits)",
                     )
                 })?;
-                (access, Task::ListPosts(id, paging.clone()))
+                let task = if matches!(
+                    command,
+                    Command::Lists {
+                        command: ListsCommand::Members { .. }
+                    }
+                ) {
+                    Task::ListMembers(id, paging.clone())
+                } else {
+                    Task::ListPosts(id, paging.clone())
+                };
+                (access, task)
             }
             Command::Following {
                 command: RelationshipCommand::List { access, paging },
@@ -166,6 +188,7 @@ impl Task {
             | Self::Bookmarks(p)
             | Self::Likes(p)
             | Self::ListPosts(_, p)
+            | Self::ListMembers(_, p)
             | Self::Relationships { paging: p, .. } => p,
         };
         if paging
@@ -188,12 +211,13 @@ impl Task {
                 | Self::Bookmarks(..)
                 | Self::Likes(..)
                 | Self::ListPosts(..)
+                | Self::ListMembers(..)
                 | Self::Relationships { .. }
                 | Self::Thread(_, _, true, _)
         )
     }
     pub(super) fn expects_users(&self) -> bool {
-        matches!(self, Self::Relationships { .. })
+        matches!(self, Self::Relationships { .. } | Self::ListMembers(..))
     }
     pub(super) fn accepts_cached(&self, output: &crate::model::Output) -> bool {
         output.users.is_some() == self.expects_users()
@@ -225,6 +249,9 @@ impl Task {
                 p.cursor
             ])
             .to_string(),
+            Self::ListMembers(id, p) => {
+                json!(["v1", "list_members", id, p.max_pages, p.page_size, p.cursor]).to_string()
+            }
             Self::ListPosts(id, p) => {
                 json!(["v1", "list_posts", id, p.max_pages, p.page_size, p.cursor]).to_string()
             }
