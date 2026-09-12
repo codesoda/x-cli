@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-12
+
+### Added
+
+- Experimental `likes list --account <alias|@handle>` for the verified account's
+  own liked posts, using a source-reviewed GET query. Explicit account selection,
+  stable identity verification, private cache scopes, bounded pagination and
+  conservative completeness are preserved. No arbitrary target users, like/unlike
+  writes, or automatic History/provider fallbacks. Source-defined availability
+  is not live interoperability; newer History rollouts may reject this query.
+- Synthetic own-likes request, parsing, failure/redaction, routing and cache-guard
+  tests, plus a separately opt-in installed-binary private smoke procedure.
+- Independent source-pinned bookmark feature-name fixture to detect shared
+  metadata drift; corrected Phase 2 docs to distinguish implemented reads from
+  unimplemented writes.
+
 ## [0.2.0] - 2026-09-12
 
 ### Added

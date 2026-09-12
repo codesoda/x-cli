@@ -1,6 +1,9 @@
 //! Source-verified read-query snapshot; see docs/protocol-research.md for provenance and limitations.
 use serde_json::{Value, json};
 
+#[cfg(test)]
+mod tests;
+
 pub const BUNDLE_URL: &str =
     "https://abs.twimg.com/responsive-web/client-web/main.7313c8670b523249a.js";
 pub const BUNDLE_SHA256: &str = "f2c17811723ec0617ef6cf213fd56eb732d4f042c7ff81b7d72e33778f9ead65";
@@ -13,6 +16,7 @@ pub enum Operation {
     User,
     Timeline,
     Bookmarks,
+    Likes,
 }
 impl Operation {
     pub fn name(self) -> &'static str {
@@ -24,6 +28,7 @@ impl Operation {
             Self::User => "UserByScreenName",
             Self::Timeline => "UserTweets",
             Self::Bookmarks => "Bookmarks",
+            Self::Likes => "Likes",
         }
     }
     pub fn id(self) -> &'static str {
@@ -36,6 +41,8 @@ impl Operation {
             Self::Timeline => "OeFjWKHutsuyWXZGmLr02A",
             // Separately reviewed shared Bookmarks chunk; see protocol-research.md.
             Self::Bookmarks => "tF6KOjmZM0WGcB2Q0mfwhw",
+            // Reviewed current main's Likes query; not an arbitrary-user capability.
+            Self::Likes => "o000A_Cp4JPOihhbeEgi0g",
         }
     }
     pub fn root(self) -> &'static str {
@@ -45,7 +52,7 @@ impl Operation {
             Self::Detail => "/data/threaded_conversation_with_injections_v2/instructions",
             Self::Search => "/data/search_by_raw_query/search_timeline/timeline/instructions",
             Self::User => "/data/user/result",
-            Self::Timeline => "/data/user/result/timeline/timeline/instructions",
+            Self::Timeline | Self::Likes => "/data/user/result/timeline/timeline/instructions",
             Self::Bookmarks => "/data/bookmark_timeline_v2/timeline/instructions",
         }
     }
@@ -75,6 +82,8 @@ impl Operation {
         if self == Self::Bookmarks {
             // The reviewed fetchBookmarksTimeline call supplies no field toggles.
             json!({})
+        } else if self == Self::Likes {
+            json!({"withArticlePlainText":false})
         } else if self == Self::Viewer {
             json!({"isDelegate":false,"withAuxiliaryUserLabels":false,"withPayments":false})
         } else {

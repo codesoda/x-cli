@@ -57,8 +57,10 @@ Directory-specific checklists live in
 - `src/providers/`: isolated upstream definitions, transport use and parsing.
   Ordinary public reads use FxTwitter; explicit account selection implies X
   GraphQL. Never fall back from authenticated access to a public provider.
-  Private bookmark reads require explicit `--account` (not just a default or
-  connection), reuse stable-ID-scoped storage, and never claim completeness.
+  Private bookmark/own-liked-post reads require explicit `--account` (not just a
+  default or connection), reuse stable-ID-scoped storage, and never claim
+  completeness. Own-liked-post requests derive the user ID from verified Viewer,
+  never from a target-user selector or an automatic History fallback.
 - `src/credentials.rs` and `src/credentials/`: session API and local credential
   access. Read [src/credentials/AGENTS.md](src/credentials/AGENTS.md) before editing
   either, including the sibling facade that nested instructions do not scope.

@@ -1,5 +1,6 @@
 use super::*;
 use clap::Parser;
+mod likes;
 
 struct NoExternalAccess;
 impl Transport for NoExternalAccess {
@@ -127,6 +128,15 @@ fn local_account_commands_preserve_registration_behavior() {
 
 #[test]
 fn bookmark_cache_never_bypasses_session_loading_or_cooldown() {
+    private_collection_cache_guards("bookmarks");
+}
+
+#[test]
+fn own_likes_cache_never_bypasses_session_loading_or_cooldown() {
+    private_collection_cache_guards("likes");
+}
+
+fn private_collection_cache_guards(operation: &str) {
     struct Expired;
     impl CredentialProvider for Expired {
         fn load(&self, profile: &str, consent: bool) -> Result<crate::credentials::Session> {
@@ -155,7 +165,7 @@ fn bookmark_cache_never_bypasses_session_loading_or_cooldown() {
         "xcli",
         "--data-dir",
         root.to_str().unwrap(),
-        "bookmarks",
+        operation,
         "list",
         "--account",
         "work",

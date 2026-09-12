@@ -122,6 +122,17 @@ pub(super) fn execute(
                         })
                     },
                 )?,
+                Task::Likes(paging) => pagination::collect(
+                    Output::new("graphql", Some(actual.id.clone())),
+                    paging.max_pages,
+                    paging.cursor.clone(),
+                    |cursor| {
+                        rate_call(cache, "graphql", account, || {
+                            // Only the verified session owner's stable ID; no target selector.
+                            graph.page(Operation::Likes, &actual.id, paging.page_size, cursor)
+                        })
+                    },
+                )?,
                 Task::Bookmarks(paging) => pagination::collect(
                     Output::new("graphql", Some(actual.id.clone())),
                     paging.max_pages,

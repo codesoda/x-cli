@@ -97,6 +97,13 @@ impl<'a> Graphql<'a> {
         let v: Value =
             serde_json::from_slice(&r.body).map_err(|_| protocol().at(Diagnostic::Json))?;
         check_errors(&v)?;
+        if op == Operation::Likes
+            && v.pointer("/data/user/result/__typename")
+                .and_then(Value::as_str)
+                != Some("User")
+        {
+            return Err(protocol().at(Diagnostic::ResponseRoot));
+        }
         v.pointer(op.root())
             .cloned()
             .ok_or_else(|| protocol().at(Diagnostic::ResponseRoot))
@@ -146,6 +153,9 @@ impl<'a> Graphql<'a> {
                 json!({"userId":target,"count":count,"includePromotedContent":false,"withQuickPromoteEligibilityTweetFields":false,"withVoice":false})
             }
             Operation::Bookmarks => json!({"count":count,"includePromotedContent":true}),
+            Operation::Likes => {
+                json!({"userId":target,"count":count,"includePromotedContent":false,"withClientEventToken":false,"withBirdwatchNotes":false,"withVoice":false})
+            }
             _ => {
                 return Err(Error::new(
                     Kind::Unsupported,
