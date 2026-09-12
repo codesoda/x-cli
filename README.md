@@ -60,7 +60,7 @@ checks that the archive contains exactly the `xcli` binary reporting the expecte
 version, and installs atomically to `~/.local/bin/xcli` without sudo. Add
 `~/.local/bin` to PATH. To inspect before executing, download `install.sh` first
 and run it with `sh install.sh --release` (see `sh install.sh --help` for the
-full mode and environment contract). Set `XCLI_VERSION=v0.1.2` to pin a release,
+full mode and environment contract). Set `XCLI_VERSION=v0.1.3` to pin a release,
 or `XCLI_INSTALL_DIR=/your/bin` to choose the destination. Downloads are
 anonymous `curl` by default (`XCLI_DOWNLOAD_MODE=auto|curl`); set
 `XCLI_DOWNLOAD_MODE=gh` to use an authenticated GitHub CLI instead. Archives and
