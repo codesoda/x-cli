@@ -145,6 +145,16 @@ pub(super) fn execute(
                         })
                     },
                 )?,
+                Task::ListMembers(id, paging) => pagination::collect_users(
+                    Output::new("graphql", Some(actual.id.clone())),
+                    paging.max_pages,
+                    paging.cursor.clone(),
+                    |cursor| {
+                        rate_call(cache, "graphql", account, || {
+                            graph.users_page(Operation::ListMembers, id, paging.page_size, cursor)
+                        })
+                    },
+                )?,
                 Task::ListPosts(id, paging) => pagination::collect(
                     Output::new("graphql", Some(actual.id.clone())),
                     paging.max_pages,

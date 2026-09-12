@@ -128,8 +128,24 @@ pub enum LikesCommand {
 }
 #[derive(Debug, Subcommand)]
 pub enum ListsCommand {
+    /// Read list membership; no membership changes.
+    Members {
+        #[command(subcommand)]
+        command: ListMembersCommand,
+    },
     /// Read the latest-post view of a list; requires its decimal ID and explicit --account.
     Posts {
+        list_id: String,
+        #[command(flatten)]
+        access: Access,
+        #[command(flatten)]
+        paging: Paging,
+    },
+}
+#[derive(Debug, Subcommand)]
+pub enum ListMembersCommand {
+    /// Read the users in a known list; requires explicit --account.
+    List {
         list_id: String,
         #[command(flatten)]
         access: Access,

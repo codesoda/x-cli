@@ -141,6 +141,7 @@ fn own_likes_cache_never_bypasses_session_loading_or_cooldown() {
 #[test]
 fn list_posts_cache_never_bypasses_session_loading_or_cooldown() {
     private_collection_cache_guards(&["lists", "posts", "456"]);
+    private_collection_cache_guards(&["lists", "members", "list", "456"]);
 }
 
 #[test]

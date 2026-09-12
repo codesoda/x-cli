@@ -267,6 +267,18 @@ fn authenticated_followers_smoke() {
     private_collection_smoke(&["followers", "list"], "authenticated followers");
 }
 
+#[test]
+#[ignore = "local list-member read; requires consent, account/profile and list ID"]
+fn authenticated_list_members_smoke() {
+    require_opt_in(true);
+    let list_id = required("XCLI_LIVE_LIST_ID");
+    xcli::input::id(&list_id).expect("XCLI_LIVE_LIST_ID must be a positive decimal list ID");
+    private_collection_smoke(
+        &["lists", "members", "list", &list_id],
+        "authenticated list members",
+    );
+}
+
 fn private_collection_smoke(operation: &[&str], stage: &str) {
     let (root, account, connection) = authenticated_connection();
     let mut args = operation.to_vec();
@@ -290,7 +302,9 @@ fn private_collection_smoke(operation: &[&str], stage: &str) {
         output.pages == 1 && !output.complete,
         "Private collection must be bounded and conservatively incomplete"
     );
-    if matches!(operation[0], "following" | "followers") {
+    if matches!(operation[0], "following" | "followers")
+        || operation.starts_with(&["lists", "members"])
+    {
         assert!(
             output.users.is_some() && output.posts.is_empty(),
             "Expected a user collection"

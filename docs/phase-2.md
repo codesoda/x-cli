@@ -57,6 +57,15 @@ in old cache data is never accepted as an empty relationship view. Neither
 operation claims exhaustive enumeration or accepts arbitrary target users.
 Source contracts are documented; live authenticated behavior remains unverified.
 
+## List-member reads
+
+Implemented experimentally in v0.6.0: `lists members list <list-id> --account ...`.
+This is a separate users collection from list-post reads, keyed by list ID and
+pagination in the verified-account cache scope. It requires explicit account
+selection, validates list IDs, and exposes no membership-changing commands.
+Source evidence and synthetic tests do not verify private-list permissions or
+exhaustive membership.
+
 ## Scope
 - [ ] Lists: view, create, update, delete, and manage membership.
 - [ ] Bookmarks: list, add, remove; separately evaluate folders.
@@ -90,6 +99,12 @@ Implemented experimentally in v0.5.0 (synthetic coverage, not live-verified):
 ```sh
 xcli following list --account @codesoda
 xcli followers list --account @codesoda
+```
+
+Implemented experimentally in v0.6.0 (synthetic coverage, not live-verified):
+
+```sh
+xcli lists members list 123456789 --account @codesoda
 ```
 
 Proposed commands below remain unimplemented:

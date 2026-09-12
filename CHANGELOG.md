@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-12
+
+### Added
+
+- Experimental `lists members list <list-id> --account ...` with a source-reviewed
+  GET query, explicit account and validated list ID. Returns a bounded users
+  collection using private account-scoped cache keys distinct from list-post
+  reads. No membership mutations or public fallback; no exhaustive membership or
+  live permission/interoperability claim.
+- Synthetic request/root/pagination/error and private routing/cache tests plus a
+  separately ignored installed-binary list-member smoke procedure.
+
 ## [0.5.1] - 2026-09-12
 
 ### Fixed

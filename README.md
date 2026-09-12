@@ -60,7 +60,7 @@ checks that the archive contains exactly the `xcli` binary reporting the expecte
 version, and installs atomically to `~/.local/bin/xcli` without sudo. Add
 `~/.local/bin` to PATH. To inspect before executing, download `install.sh` first
 and run it with `sh install.sh --release` (see `sh install.sh --help` for the
-full mode and environment contract). Set `XCLI_VERSION=v0.5.1` to pin a release,
+full mode and environment contract). Set `XCLI_VERSION=v0.6.0` to pin a release,
 or `XCLI_INSTALL_DIR=/your/bin` to choose the destination. Downloads are
 anonymous `curl` by default (`XCLI_DOWNLOAD_MODE=auto|curl`); set
 `XCLI_DOWNLOAD_MODE=gh` to use an authenticated GitHub CLI instead. Archives and
@@ -120,6 +120,7 @@ xcli likes list --account work --max-pages 2 --no-cache
 
 # Latest-post view of a known list; use its decimal list ID, not a post URL.
 xcli lists posts 123456789 --account work --max-pages 2 --no-cache
+xcli lists members list 123456789 --account work --max-pages 2 --no-cache
 
 # The selected account's own relationship views; output contains users, not posts.
 xcli following list --account work --max-pages 2 --no-cache
@@ -178,7 +179,7 @@ no automatic History/other-user/provider fallback.
 (even for a public list); `--connection` may disambiguate that account but does not
 replace it. The command reads the source-defined latest-post view, not ranked
 results or an exhaustive archive. List discovery, metadata, create/update/delete
-and membership commands are not implemented. It reuses the same pagination and
+and membership-changing commands are not implemented. It reuses the same pagination and
 account-isolated cache controls as bookmarks; private-list content is not
 encrypted at rest. Missing/inaccessible data fails without public fallback.
 
@@ -192,6 +193,12 @@ Human output renders profile URLs. Pagination, private account-scoped cache
 controls and incomplete-collection exit 12 apply; cached relationship data is
 not encrypted at rest. Missing/unsupported user shapes fail explicitly, and no
 result is claimed to be a complete follower/following graph.
+
+`lists members list <list-id>` is available starting with v0.6.0 as an
+experimental, **not live-verified**, user collection with the same explicit
+account/list-ID validation as list-post reads. It returns `users:[{id,handle}]`
+and `posts:[]`, uses account-isolated caching, and never claims exhaustive
+membership. No add/remove membership commands or public fallback are enabled.
 
 `--backend fxtwitter --account work` and authenticated-only operations on FxTwitter are rejected. There is no automatic provider/account fallback. All requests are bounded by a 30-second timeout and an 8 MiB response limit. There are **no automatic retries**. Rate-limit responses persist a backend/account-scoped cooldown; honor the returned retry advice.
 
@@ -286,6 +293,7 @@ Errors are JSON on stderr; results are JSON on stdout. GraphQL failures may incl
 | Own liked-post listing | Experimental authenticated read; synthetic tests only, rollout availability unverified |
 | List-post timelines | Experimental latest-post read; synthetic tests only, private-list permissions/live behavior unverified |
 | Following/follower lists | Experimental own-account user collections; synthetic tests only, live behavior unverified |
+| List-member reads | Experimental user collection; synthetic tests only, live permissions unverified |
 | Phase 2 mutations | Unimplemented; [issue #1](https://github.com/codesoda/x-cli/issues/1) |
 
 **Remaining live-verification blockers:** the user-observed search failure and untested timeline stage need further consented local evidence. Broader released-Chrome compatibility, X account-specific feature values, required transaction headers, identity semantics and pagination variants also remain unverified. The current client uses a documented public feature snapshot plus conservative optional-variable choices. It does not fabricate transaction IDs or circumvent browser/OS/network challenges. On rejection, capture only xcli's redacted error kind/exit code and operation name—not cookies or raw responses. See [protocol evidence and attempted alternatives](docs/protocol-research.md) and the [safe local live-verification sequence](docs/live-verification.md).

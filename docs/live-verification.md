@@ -195,6 +195,17 @@ users, retain cooldowns, and withhold captured output. The agent has not run the
 Stop on failure/rate limits; do not share raw relationship data or try another
 account to work around rejection.
 
+## Separate list-member smoke test
+
+After installing v0.6.0 or newer, a consenting user can select the separately
+ignored `authenticated_list_members_smoke` using the same explicit
+`XCLI_LIVE=1`, `XCLI_LIVE_AUTH=1`, account/profile, `XCLI_LIVE_LIST_ID`, and
+`XCLI_LIVE_BINARY` settings as the list-post smoke above. It validates the list
+ID before credential loading, reads one page of five requested members, and
+checks the users output shape without printing identities. No member is added
+or removed. This procedure has not been run by the agent; unknown list access or
+item shapes fail closed rather than being called empty successes.
+
 ## Verification evidence
 
 On 2026-09-10, the original public checks passed before moving into this
