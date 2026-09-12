@@ -10,7 +10,7 @@ use std::{
             fs::{MetadataExt, PermissionsExt},
         },
     },
-    path::{Component, PathBuf},
+    path::Component,
     sync::atomic::{AtomicU64, Ordering},
 };
 
@@ -22,6 +22,9 @@ use libc::{
     unlinkat,
 };
 static NEXT: AtomicU64 = AtomicU64::new(0);
+
+mod directory;
+use directory::parent;
 
 #[cfg(test)]
 mod tests;
@@ -59,62 +62,6 @@ fn private(file: &File, directory: bool) -> Result<()> {
         0o600
     }))
     .map_err(|_| storage())
-}
-fn sync_created_directory(parent: &File, child: &File) -> Result<()> {
-    // Persist the new directory/permissions, then its entry in the containing
-    // directory, before creating any descendant state or lock file.
-    child.sync_all().map_err(|_| storage())?;
-    parent.sync_all().map_err(|_| storage())
-}
-fn parent(path: &Path, create: bool) -> Result<Option<(File, CString)>> {
-    parent_with_sync(path, create, sync_created_directory)
-}
-fn parent_with_sync(
-    path: &Path,
-    create: bool,
-    mut sync_created: impl FnMut(&File, &File) -> Result<()>,
-) -> Result<Option<(File, CString)>> {
-    let absolute: PathBuf = if path.is_absolute() {
-        path.into()
-    } else {
-        std::env::current_dir().map_err(|_| storage())?.join(path)
-    };
-    let mut parts = Vec::new();
-    for part in absolute.components() {
-        match part {
-            Component::RootDir | Component::CurDir => (),
-            Component::Normal(s) => parts.push(name(s)?),
-            _ => return Err(storage()),
-        }
-    }
-    let filename = parts.pop().ok_or_else(storage)?;
-    // Never chmod the filesystem root when passed a bare root-level filename.
-    if parts.is_empty() {
-        return Err(storage());
-    }
-    let mut dir = File::open("/").map_err(|_| storage())?;
-    for part in parts {
-        dir = match open(&dir, &part, DIRECTORY) {
-            Ok(next) => next,
-            Err(e) if e.kind() == io::ErrorKind::NotFound => {
-                if !create {
-                    return Ok(None);
-                }
-                let rc = unsafe { mkdirat(dir.as_raw_fd(), part.as_ptr(), 0o700) };
-                if rc != 0 && io::Error::last_os_error().kind() != io::ErrorKind::AlreadyExists {
-                    return Err(storage());
-                }
-                let next = open(&dir, &part, DIRECTORY).map_err(|_| storage())?;
-                // Fix restrictive umasks too (e.g. 0777).
-                private(&next, true)?;
-                sync_created(&dir, &next)?;
-                next
-            }
-            Err(_) => return Err(storage()),
-        };
-    }
-    private(&dir, true)?;
-    Ok(Some((dir, filename)))
 }
 fn existing(dir: &File, filename: &CString) -> Result<Option<File>> {
     match open(dir, filename, NONBLOCK) {
@@ -233,7 +180,13 @@ pub(super) fn prune_files(directory: &Path, keep: Option<&str>, max_files: usize
     dir.sync_all().map_err(|_| storage())
 }
 pub(super) fn with_lock<T>(path: &Path, action: impl FnOnce() -> Result<T>) -> Result<T> {
-    let (dir, filename) = parent(path, true)?.ok_or_else(storage)?;
+    with_lock_parent(action, || parent(path, true))
+}
+fn with_lock_parent<T>(
+    action: impl FnOnce() -> Result<T>,
+    resolve: impl FnOnce() -> Result<Option<(File, CString)>>,
+) -> Result<T> {
+    let (dir, filename) = resolve()?.ok_or_else(storage)?;
     // Separate exclusive creation from opening an existing lock. In
     // particular, concurrent O_CREAT|O_NOFOLLOW opens can report ENOENT on
     // Darwin. Retry only that bounded creation race, never symlink errors.
@@ -298,7 +251,13 @@ pub(super) fn read<T: DeserializeOwned>(path: &Path) -> Result<Option<T>> {
         .map_err(|_| storage())
 }
 pub(super) fn write(path: &Path, bytes: &[u8]) -> Result<()> {
-    let (dir, filename) = parent(path, true)?.ok_or_else(storage)?;
+    write_with_parent(bytes, || parent(path, true))
+}
+fn write_with_parent(
+    bytes: &[u8],
+    resolve: impl FnOnce() -> Result<Option<(File, CString)>>,
+) -> Result<()> {
+    let (dir, filename) = resolve()?.ok_or_else(storage)?;
     existing(&dir, &filename)?;
     let (tempname, mut temp) = loop {
         let tempname = name(OsStr::new(&format!(

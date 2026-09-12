@@ -51,14 +51,41 @@ before any descendant record is created. Synthetic tests check call ordering,
 nested creation, injected sync failure, and non-creating read walks; existing
 state security tests also pass.
 
-This closes the missing-sync path during successful creation, **not** a complete
-journal recovery proof. A later invocation can encounter directories left by a
-previous failed creation; their link durability needs explicit recovery handling
-or a rigorously established durable-root precondition before dispatch-capable
-journaling. No test here simulates actual power loss or lying storage hardware.
-Continue reviewing directory-chain durability and restart behavior before any
-network mutation. Do not describe current storage as a verified power-loss-safe
-mutation journal. No journal or mutation transport has been added.
+The v0.8.2 hardening reprocesses **every opened directory link before descent**
+on each creating walk, including existing directories left by a failed prior
+invocation. There is no remembered already-synced state. Newly created pairs
+unconditionally sync child then containing directory after private permissions
+are set. For existing pairs, each descriptor is processed separately, child
+first: fd-based `fstatvfs` must succeed; only `ST_RDONLY` exempts that existing
+namespace descriptor, otherwise standard `File::sync_all` must succeed. A
+readonly root never exempts a writable descendant. No sync error is swallowed,
+and mount flags are not rechecked after a failure. File data, new pairs and
+post-rename/unlink/prune syncs never receive readonly forgiveness.
+
+Only successful `mkdirat` creation triggers intermediate-directory permission
+repair; an `EEXIST` race is classified as existing and does not chmod that
+ancestor. Final private-directory repair and descriptor-relative path, type,
+owner and link protections remain unchanged. Non-creating read/removal/prune
+walks do not perform traversal synchronization or create directories; their
+existing post-unlink/prune syncs are unchanged. Walk failure prevents descendant
+creation, record publication and lock actions, and a retry must process the
+failed link again before proceeding.
+
+This closes retry sequencing **conditionally**, assuming stable mount/path
+topology, storage that honors synchronization, and independently durable exempt
+readonly namespaces. `ST_RDONLY` is not persistence proof: readonly bind views,
+volatile backing or error-remounted storage can violate that assumption. Extra
+synchronization may surface storage errors on writable ancestors that were
+previously unchecked. No permission, ownership or pathname heuristic establishes
+readonly durability.
+
+Synthetic canonical-temporary-directory tests check ordering, repeated failure
+and retry, readonly child/parent combinations, mount-query and sync errors,
+`EEXIST` races, permissions and publication/lock barriers. They do not simulate
+physical power loss or lying storage hardware. This is **not** universal
+power-loss-safe mutation journaling. Future journal activation still requires
+eligible persistent storage, the policy/outcome protocol above and separate live
+consent. No journal, POST capability or mutation activation has been added.
 
 ## Bookmark source evidence — 2026-09-12
 
