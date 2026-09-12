@@ -1,6 +1,8 @@
 use super::*;
 use clap::Parser;
+mod human_output;
 mod likes;
+mod list_inventory;
 mod list_metadata;
 mod lists;
 mod relationships;
@@ -187,7 +189,12 @@ fn private_collection_cache_guards(operation: &[&str]) {
         output.users = Some(vec![]);
     }
     if task.expects_lists() {
-        output.lists = Some(vec![list_metadata::fixture()]);
+        let mut list = list_metadata::fixture();
+        if matches!(task, task::Task::ListInventory(..)) {
+            list.management_sections
+                .push(crate::model::ListManagementSection::Pinned);
+        }
+        output.lists = Some(vec![list]);
     }
     cache
         .put("graphql", Some("123"), &task.key(), &output)

@@ -491,6 +491,78 @@ or private-list denial/deletion interpretation has been established. No live
 GraphQL, browser/Keychain access or mutations were performed for this increment;
 permissions and interoperability require separate consented evidence.
 
+### Viewer-visible list-management inventory — 2026-09-12
+
+The source contract supplied for this increment pins the same
+[shared chunk 25406](https://abs.twimg.com/responsive-web/client-web/shared~loader.Dock~bundle.BookmarkFolders~bundle.Bookmarks~bundle.Explore~bundle.HomeTimeline~bundle.Notifica.dd20d1d8c1f4a4bca.js),
+SHA-256 `c208d767c6aacb1ce87e30cfe7df7b3cc0d80471fc15d465b0298a59751b9a50`.
+Module 631330 defines `ListsManagementPageTimeline`, query ID
+`XU4wZWEjElhe--6doqFolA`, `operationType:"query"`. Module 776254 calls:
+
+```js
+fetchListsManagementPageTimeline:({count:n,cursor:i})=>
+  e.graphQL(z(),{count:n,cursor:i,...(0,o.g)(t)},ed)
+    .then(e=>e.viewer?.list_management_timeline?.timeline||ei.yB)
+```
+
+The shared helper is empty. GET variables are exactly `{count,cursor?}`: no actor
+ID, list ID, voice or promoted-content fields. Its declared feature set is exactly
+the existing 39-name post set P; authenticated values remain unverified. There is
+no field-toggle options argument: `fieldToggles` is omitted. The required raw root
+is `/data/viewer/list_management_timeline/timeline/instructions`, with no invented
+Viewer/User discriminator and no browser empty-state fallback for missing data.
+The runtime public authorization asset remains unchanged.
+
+Shared module 515480 uses formatter 225219 with contexts `pinnedLists` and
+`ownedSubscribedList`. Recognized module ID prefixes are `pinned-list-module` or
+`pinnedListModule`, and `owned-subscribed-list-module` or
+`ownedSubscribedListModule`. These are **overlapping placement sections**, not
+exclusive or exhaustive ownership classes. The observed initial browser count
+100 is not an established server limit.
+
+[Current main](https://abs.twimg.com/responsive-web/client-web/main.ef8e0e0fdc2bb9c0a.js),
+SHA-256 `290a24f210c6b7310e3abe0abbf935a748e6b48719db6c9bf30782b44c206e59`,
+provides the generic item chain 225219/218606/357725/867965:
+`itemContent.itemType:"TimelineTwitterList"` with **direct `itemContent.list`**,
+not `list_results.result`. Module items use `content.items[].item.itemContent`;
+add-to-module entries use the same item shape. List normalizer 550018 supplies the
+existing `id_str`/name/mode/`user_results` metadata projection, without a required
+List typename. Raw `following`, `pinning` and `is_member` are optional booleans,
+normalized as `subscribed`, `pinned`, `is_member`; missing/null remains unknown,
+explicit false remains false, and malformed non-booleans fail.
+
+xcli's strict parser accepts reviewed add/replace/pin/add-to-module/terminate/clear
+instructions and Bottom continuation cursors. It rejects missing roots, unknown
+instructions/modules, malformed rows and unsupported non-null promotion metadata.
+Recognized empty add-entry views remain incomplete empty collections. Flat rows
+must have explicit pinned/subscribed true or a known owner ID matching the
+Viewer-verified actor. Membership and display type are not inventory evidence.
+Such rows receive only `unsectioned` placement; flags do not fabricate module
+provenance. Known module rows carry their actual section even when flags are
+unknown, and do not imply ownership.
+
+The shared bounded collector deduplicates stable IDs while unioning section
+provenance in first-seen order. Later explicit values fill unknown optional
+metadata; conflicting known values (including names) retain first values and
+produce a static warning, not raw metadata. All inventory collections remain
+`complete:false`, including cursor exhaustion; later failures preserve partial
+results without caching failed requests or retrying. Old cache entries stripped
+of row section provenance are bypassed; valid empty list arrays remain acceptable.
+This visible snapshot is not authoritative mutation reconciliation evidence.
+
+**Rollout caveat:** [UserLists bundle](https://abs.twimg.com/responsive-web/client-web/bundle.UserLists.295cb90da11794e5a.js),
+SHA-256 `5f7c8bc573263490bedfedcdb4809c8aa3dba85ea2680b9c235c95d723731bfb`,
+module 568527 gates management on
+`responsive_web_timeline_relay_lists_management_enabled`. The alternative
+`managementListsPageTimelineQuery` / `tmmRwBWFQcC251tt6K7ZaQ` uses different Relay
+aliases and `owner_results`. It is **not implemented as a fallback**.
+`ListsDiscovery` is recommendations, not inventory, and is excluded.
+
+This implementation used the supplied static source contract and offline
+synthetic tests; no fresh live X request, authenticated request, browser/Keychain
+access, JavaScript execution or mutation was performed. Source definitions do not
+establish rollout availability, private-list permissions or live interoperability.
+
 ## 3. macOS Chrome credential access: supported boundary
 
 First-party source snapshot: Chromium **`233e625e16284f1f1e11150b88ea16e43c325c37`**, inspected 2026-09-10. This is mainline source, **not a verified installed/released Chrome build**:

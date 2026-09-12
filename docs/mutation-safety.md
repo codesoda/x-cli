@@ -42,20 +42,23 @@ must not advertise working add/remove/create/delete commands.
 
 ## Local durability audit — 2026-09-12
 
-Inspection of `src/state/unix.rs` confirms that `write` syncs the temporary file,
-renames it relative to the pinned parent descriptor, then syncs that immediate
-parent. However, `parent(..., create=true)` currently creates missing ancestor
-directories with `mkdirat` and repairs their private permissions without syncing
-the newly created directory and its containing directory before descending.
-No synthetic unit test establishes power-loss persistence of that directory
-chain. Existing atomic replacement tests are not sufficient evidence for a
-mutation journal's pre-dispatch durability.
+At v0.7.0, inspection of `src/state/unix.rs` confirmed that `write` synced the
+temporary file and immediate parent after rename, but newly created ancestor
+directories were not synced before descent. The v0.8.0 preparation adds syncs of
+each newly created directory and its containing directory using pinned
+descriptors, after private permissions are set. A sync failure stops that walk
+before any descendant record is created. Synthetic tests check call ordering,
+nested creation, injected sync failure, and non-creating read walks; existing
+state security tests also pass.
 
-Before dispatch-capable journaling, fix and review directory-chain durability
-using the already-pinned descriptors, propagate sync errors before dispatch, and
-test nested creation, failures and restart behavior. Do not describe current
-storage as a verified power-loss-safe mutation journal. No journal or mutation
-transport has been added by this audit.
+This closes the missing-sync path during successful creation, **not** a complete
+journal recovery proof. A later invocation can encounter directories left by a
+previous failed creation; their link durability needs explicit recovery handling
+or a rigorously established durable-root precondition before dispatch-capable
+journaling. No test here simulates actual power loss or lying storage hardware.
+Continue reviewing directory-chain durability and restart behavior before any
+network mutation. Do not describe current storage as a verified power-loss-safe
+mutation journal. No journal or mutation transport has been added.
 
 ## Bookmark source evidence — 2026-09-12
 

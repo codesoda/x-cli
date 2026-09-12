@@ -1,6 +1,7 @@
 use super::*;
 mod bookmarks;
 mod likes;
+mod list_inventory;
 mod list_members;
 mod list_metadata;
 mod lists;

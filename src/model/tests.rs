@@ -36,6 +36,18 @@ fn users_are_explicit_even_when_empty_and_render_as_profiles() {
 }
 
 #[test]
+fn legacy_list_metadata_roundtrips_without_new_unknown_fields() {
+    let value = serde_json::json!({
+        "id":"456", "name":"Fixture", "description":null,
+        "visibility":null, "owner":null, "url":"https://x.com/i/lists/456"
+    });
+    let list: ListInfo = serde_json::from_value(value.clone()).unwrap();
+    assert!(list.subscribed.is_none() && list.pinned.is_none() && list.is_member.is_none());
+    assert!(list.management_sections.is_empty());
+    assert_eq!(serde_json::to_value(list).unwrap(), value);
+}
+
+#[test]
 fn user_collections_roundtrip_through_private_scoped_cache() {
     let temp = tempfile::tempdir().unwrap();
     let cache = crate::cache::Cache::new(temp.path().canonicalize().unwrap().join("cache"));

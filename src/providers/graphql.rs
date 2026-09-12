@@ -10,6 +10,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
 
+mod list_inventory;
 mod list_metadata;
 mod parsing;
 mod users;
@@ -72,6 +73,7 @@ impl<'a> Graphql<'a> {
                 | Operation::ListPosts
                 | Operation::ListMembers
                 | Operation::ListMetadata
+                | Operation::ListInventory
         ) {
             url.query_pairs_mut()
                 .append_pair("fieldToggles", &op.toggles().to_string());
@@ -168,6 +170,26 @@ impl<'a> Graphql<'a> {
         output.stop_reason = "single_list".into();
         output.warnings.push("Unofficial source-verified protocol; authenticated rollout interoperability is not guaranteed".into());
         Ok(output)
+    }
+    /// Actor identity is used only to validate flat row provenance, never as a query variable.
+    pub fn lists_page(
+        &self,
+        actor: &str,
+        count: u32,
+        cursor: Option<&str>,
+    ) -> Result<crate::pagination::ListsPage> {
+        crate::input::id(actor)?;
+        let mut variables = json!({"count":count});
+        if let Some(cursor) = cursor {
+            if cursor.is_empty() || cursor.len() > 4096 {
+                return Err(Error::new(
+                    Kind::InvalidInput,
+                    "Cursor must contain 1 to 4096 bytes",
+                ));
+            }
+            variables["cursor"] = json!(cursor);
+        }
+        list_inventory::parse(&self.query(Operation::ListInventory, variables)?, actor)
     }
     pub fn users_page(
         &self,

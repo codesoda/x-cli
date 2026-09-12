@@ -1,5 +1,7 @@
 //! Local opt-in smoke tests. Never print captured payloads, session material or headers.
 //! See docs/live-verification.md; enabling the feature alone performs no live work.
+#[path = "live/list_inventory.rs"]
+mod list_inventory;
 #[path = "live/list_metadata.rs"]
 mod list_metadata;
 use std::{

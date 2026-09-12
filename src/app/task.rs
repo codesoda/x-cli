@@ -17,6 +17,7 @@ pub(super) enum Task {
     ListPosts(String, Paging),
     ListMembers(String, Paging),
     ListMetadata(String),
+    ListInventory(Paging),
     Relationships { followers: bool, paging: Paging },
 }
 impl Task {
@@ -105,6 +106,17 @@ impl Task {
                 (access, Task::Likes(paging.clone()))
             }
             Command::Lists {
+                command: ListsCommand::List { access, paging },
+            } => {
+                if access.account.as_deref().is_none_or(str::is_empty) {
+                    return Err(Error::new(
+                        Kind::InvalidInput,
+                        "List inventory reads require an explicit --account selector",
+                    ));
+                }
+                (access, Task::ListInventory(paging.clone()))
+            }
+            Command::Lists {
                 command: ListsCommand::Show { list_id, access },
             } => (
                 access,
@@ -179,6 +191,7 @@ impl Task {
             | Self::Timeline(_, p)
             | Self::Bookmarks(p)
             | Self::Likes(p)
+            | Self::ListInventory(p)
             | Self::ListPosts(_, p)
             | Self::ListMembers(_, p)
             | Self::Relationships { paging: p, .. } => p,
@@ -205,6 +218,7 @@ impl Task {
                 | Self::ListPosts(..)
                 | Self::ListMembers(..)
                 | Self::ListMetadata(..)
+                | Self::ListInventory(..)
                 | Self::Relationships { .. }
                 | Self::Thread(_, _, true, _)
         )
@@ -213,17 +227,26 @@ impl Task {
         matches!(self, Self::Relationships { .. } | Self::ListMembers(..))
     }
     pub(super) fn expects_lists(&self) -> bool {
-        matches!(self, Self::ListMetadata(..))
+        matches!(self, Self::ListMetadata(..) | Self::ListInventory(..))
     }
     pub(super) fn accepts_cached(&self, output: &crate::model::Output) -> bool {
         output.users.is_some() == self.expects_users()
             && output.lists.is_some() == self.expects_lists()
             && (!(self.expects_users() || self.expects_lists()) || output.posts.is_empty())
+            && (!matches!(self, Self::ListInventory(..))
+                || output.lists.as_ref().is_some_and(|lists| {
+                    lists
+                        .iter()
+                        .all(|list| !list.management_sections.is_empty())
+                }))
     }
     pub(super) fn key(&self) -> String {
         match self {
             Self::Read(id) => json!(["v1", "read", id]).to_string(),
             Self::ListMetadata(id) => json!(["v1", "list_metadata", id]).to_string(),
+            Self::ListInventory(p) => {
+                json!(["v1", "list_inventory", p.max_pages, p.page_size, p.cursor]).to_string()
+            }
             Self::Thread(id, max, replies, p) => json!([
                 "v1",
                 "thread",

@@ -148,6 +148,16 @@ pub(super) fn execute(
                         })
                     },
                 )?,
+                Task::ListInventory(paging) => pagination::collect_lists(
+                    Output::new("graphql", Some(actual.id.clone())),
+                    paging.max_pages,
+                    paging.cursor.clone(),
+                    |cursor| {
+                        rate_call(cache, "graphql", account, || {
+                            graph.lists_page(&actual.id, paging.page_size, cursor)
+                        })
+                    },
+                )?,
                 Task::ListMembers(id, paging) => pagination::collect_users(
                     Output::new("graphql", Some(actual.id.clone())),
                     paging.max_pages,

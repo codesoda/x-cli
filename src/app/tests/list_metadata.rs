@@ -11,6 +11,10 @@ pub(super) fn fixture() -> ListInfo {
             id: "789".into(),
             handle: "owner_fixture".into(),
         }),
+        subscribed: None,
+        pinned: None,
+        is_member: None,
+        management_sections: vec![],
         url: "https://x.com/i/lists/456".into(),
     }
 }
@@ -132,7 +136,6 @@ fn list_metadata_cli_has_no_paging_discovery_or_mutations() {
         vec!["xcli", "lists", "show", "456", "--cursor", "next"],
         vec!["xcli", "lists", "show", "456", "--refresh", "--no-cache"],
         vec!["xcli", "lists", "show", "456", "--name", "updated"],
-        vec!["xcli", "lists", "list"],
         vec!["xcli", "lists", "create", "Fixture"],
         vec!["xcli", "lists", "update", "456"],
         vec!["xcli", "lists", "delete", "456"],
