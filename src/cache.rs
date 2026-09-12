@@ -8,6 +8,9 @@ use crate::{
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, path::PathBuf};
 
+mod generation;
+pub use generation::{CacheGeneration, ConditionalPut};
+
 type Entries = BTreeMap<String, Output>;
 type Cooldowns = BTreeMap<String, u64>;
 
@@ -118,7 +121,23 @@ impl Cache {
         output.provenance.age_seconds = age;
         Ok(Some(output))
     }
+    /// Uncoordinated low-level write: callers can refill after invalidation.
+    /// Managed retrievals must capture a generation before fetching and use
+    /// `put_if_generation` instead.
     pub fn put(
+        &self,
+        backend: &str,
+        account: Option<&str>,
+        key: &str,
+        output: &Output,
+    ) -> Result<()> {
+        state::with_lock(&self.root.join(".cache.lock"), || {
+            self.put_locked(backend, account, key, output)
+        })
+    }
+
+    // Caller owns .cache.lock. Never acquire that lock recursively here.
+    fn put_locked(
         &self,
         backend: &str,
         account: Option<&str>,
@@ -130,36 +149,38 @@ impl Cache {
         }
         let key = digest(backend, account, Some(key))?;
         // Count without allocating a second potentially huge serialized output.
-        // Oversized outputs are deliberately not cached (and replace no old hit).
+        // Oversized outputs are not cached; remove any old hit for this key.
         let fits = encoded_size(output)? + encoded_size(&key)? + 3 <= MAX_SCOPE_BYTES;
-        state::with_lock(&self.root.join(".cache.lock"), || {
-            let path = self.scope_path(backend, account)?;
-            let mut entries: Entries = state::read_json(&path)?.unwrap_or_default();
-            entries.remove(&key);
-            if fits {
-                entries.insert(key.clone(), output.clone());
-            }
-            trim(&mut entries, &key)?;
-            state::write_json(&path, &entries)?;
-            let filename = path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .ok_or_else(storage)?;
-            // Enumerate metadata only: no other account's content is opened.
-            state::prune_files(&self.root.join("content"), Some(filename), MAX_SCOPES)
-        })
+        let path = self.scope_path(backend, account)?;
+        let mut entries: Entries = state::read_json(&path)?.unwrap_or_default();
+        entries.remove(&key);
+        if fits {
+            entries.insert(key.clone(), output.clone());
+        }
+        trim(&mut entries, &key)?;
+        state::write_json(&path, &entries)?;
+        let filename = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .ok_or_else(storage)?;
+        // Enumerate metadata only: no other account's content is opened.
+        state::prune_files(&self.root.join("content"), Some(filename), MAX_SCOPES)
     }
-    /// Delete only this backend/account's content at a point in time, without
-    /// decoding it. Cooldowns survive. In-flight reads may refill the scope;
-    /// this is not sufficient coordination for future post-mutation invalidation.
+    /// Advance the global generation before deleting only this scope, without
+    /// decoding it. Other content and cooldowns survive, but all older managed
+    /// fetches lose write eligibility. A failed deletion may advance generation.
+    /// This does not replace future post-mutation journal recovery.
     pub fn invalidate_scope(&self, backend: &str, account: Option<&str>) -> Result<()> {
         state::with_lock(&self.root.join(".cache.lock"), || {
+            self.advance_generation_locked()?;
             state::remove_file(&self.scope_path(backend, account)?)
         })
     }
-    /// Remove cached content only. Cooldowns and their deadlines survive a purge.
+    /// Advance generation, then remove cached content only. Cooldowns and the
+    /// generation metadata survive; a failed deletion may advance generation.
     pub fn purge(&self) -> Result<()> {
         state::with_lock(&self.root.join(".cache.lock"), || {
+            self.advance_generation_locked()?;
             state::prune_files(&self.root.join("content"), None, 0)?;
             // Pre-isolation caches are never read or migrated; purge removes the
             // obsolete mixed file too, without following a possible symlink.

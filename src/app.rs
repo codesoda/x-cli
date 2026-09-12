@@ -5,7 +5,7 @@ mod task;
 mod tests;
 
 use crate::{
-    cache::Cache,
+    cache::{Cache, CacheGeneration, ConditionalPut},
     cli::{Access, CacheCommand, Cli, Command},
     config::Config,
     credentials::{Chrome, CredentialProvider, Profile},
@@ -135,21 +135,30 @@ fn cached(
         cache.get(backend, account, key, a.cache_ttl)
     }
 }
-fn save_cached(cache: &Cache, a: &Access, key: &str, out: &Output) -> Result<()> {
+fn save_cached(
+    cache: &Cache,
+    generation: Option<&CacheGeneration>,
+    key: &str,
+    out: &mut Output,
+) -> Result<()> {
+    // None means --no-cache: no generation access or content writes.
     // Never cache a failed/truncated request as a successful fresh collection.
-    if !a.no_cache
+    if let Some(generation) = generation
         && !out.request_failed
         && !matches!(
             out.stop_reason.as_str(),
             "request_failed" | "parent_unavailable" | "replies_failed"
         )
-    {
-        cache.put(
+        && cache.put_if_generation(
+            generation,
             &out.provenance.backend,
             out.provenance.account_id.as_deref(),
             key,
             out,
-        )?;
+        )? == ConditionalPut::GenerationChanged
+    {
+        out.warnings
+            .push("Cache generation changed during retrieval; result not stored".into());
     }
     Ok(())
 }

@@ -6,6 +6,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-09-12
+
+### Fixed
+
+- Managed public/authenticated cache writes now capture a root-bound generation
+  before upstream content retrieval and compare/write under `.cache.lock`.
+  Global and account-only purge increment/persist one bounded global u64 epoch
+  before deletion, preventing pre-invalidation fetches from refilling afterward.
+  No lock spans network or credential work. Stale-generation results retain their
+  data with a static not-stored warning, without retry or request-failure status.
+- Preserve existing content/hits in unrelated scopes, config, cooldowns, journal
+  records and the original global/scoped legacy-cache deletion semantics. A
+  scoped purge conservatively suppresses unrelated in-flight writes, not hits.
+  Refresh/TTL zero participate; no-cache bypasses capture/writes and failed
+  requests remain uncached. Post/parent/reply, user and list reads participate.
+- The single versioned `cache/generation.json` survives purge. Missing metadata
+  initially means zero; corrupt/unsupported metadata or overflow fails safely
+  before deletion, never resets the counter. Failed deletion may advance it.
+
+### Added
+
+- Deterministic offline cache and real retrieval-seam regressions for purge
+  during fake public/authenticated content fetch, retained results and later
+  refill, typed collections, cache controls, root binding, metadata failures,
+  preserved state and existing bounded/secure write policies.
+
+### Documentation
+
+- The barrier covers managed v0.9.1+ CLI writes, not older binaries, direct
+  low-level `Cache::put` or manual metadata edits. It does not establish upstream
+  freshness, complete post-mutation recovery or physical power-loss guarantees.
+  Journal `invalidation_pending` recovery, eligible storage, per-account mutation
+  policy and the reviewed outcome protocol remain required. No journal or X
+  mutations are implemented; the original-README audit remains historical.
+
 ## [0.9.0] - 2026-09-12
 
 ### Added

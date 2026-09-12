@@ -287,6 +287,55 @@ fn global_purge_ignores_corrupt_config_and_preserves_cooldowns_and_result() {
 }
 
 #[test]
+fn dispatched_purges_fence_managed_writes_and_preserve_generation_metadata() {
+    for global in [false, true] {
+        let f = Fixture::new();
+        let token = f.cache.capture_generation().unwrap();
+        if global {
+            command(&f.root, &["cache", "purge"]).unwrap();
+        } else {
+            purge(&f.root, "work").unwrap();
+        }
+        assert_eq!(
+            f.cache
+                .put_if_generation(
+                    &token,
+                    "graphql",
+                    Some("123"),
+                    "key",
+                    &Output::new("graphql", Some("123".into()))
+                )
+                .unwrap(),
+            ConditionalPut::GenerationChanged
+        );
+        let metadata: Value = crate::state::read_json(&f.root.join("cache/generation.json"))
+            .unwrap()
+            .unwrap();
+        assert_eq!(metadata, json!({"version":1,"generation":1}));
+        assert!(!f.selected.exists());
+    }
+}
+
+#[test]
+fn corrupt_generation_blocks_both_purge_commands_before_any_content_deletion() {
+    let f = Fixture::new();
+    let path = f.root.join("cache/generation.json");
+    fs::write(&path, b"invalid synthetic metadata").unwrap();
+    let before = f.snapshot();
+    assert_eq!(purge(&f.root, "work").unwrap_err().kind, Kind::Storage);
+    assert_eq!(f.snapshot(), before);
+    // Global purge ignores corrupt config, but must not reset a corrupt epoch.
+    fs::write(f.root.join("config.json"), b"invalid synthetic config").unwrap();
+    let before = f.snapshot();
+    assert_eq!(
+        command(&f.root, &["cache", "purge"]).unwrap_err().kind,
+        Kind::Storage
+    );
+    assert_eq!(f.snapshot(), before);
+    assert_eq!(fs::read(path).unwrap(), b"invalid synthetic metadata");
+}
+
+#[test]
 fn missing_config_is_not_an_account_or_required_for_global_purge() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().canonicalize().unwrap();

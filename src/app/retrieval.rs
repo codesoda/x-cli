@@ -47,8 +47,11 @@ fn execute_with_factory(
         {
             hit
         } else {
+            let generation = (!access.no_cache)
+                .then(|| cache.capture_generation())
+                .transpose()?;
             let fetch = |id: &str| rate_call(cache, "fxtwitter", None, || fx::read(t, id));
-            let out = match &task {
+            let mut out = match &task {
                 Task::Read(id) => fetch(id)?,
                 Task::Thread(id, max, _, _) => pagination::parents(fetch(id)?, *max, fetch)?,
                 _ => {
@@ -58,7 +61,7 @@ fn execute_with_factory(
                     ));
                 }
             };
-            save_cached(cache, access, &key, &out)?;
+            save_cached(cache, generation.as_ref(), &key, &mut out)?;
             out
         }
     } else {
@@ -89,9 +92,14 @@ fn execute_with_factory(
         }) {
             hit
         } else {
+            // Viewer and explicit-handle checks precede capture. The lock is
+            // released before even the first content/user lookup request.
+            let generation = (!access.no_cache)
+                .then(|| cache.capture_generation())
+                .transpose()?;
             let fetch =
                 |id: &str| rate_call(cache, "graphql", account, || graph.read(id, &actual.id));
-            let out = match &task {
+            let mut out = match &task {
                 Task::Read(id) => fetch(id)?,
                 Task::ListMetadata(id) => rate_call(cache, "graphql", account, || {
                     graph.list_metadata(id, &actual.id)
@@ -232,7 +240,7 @@ fn execute_with_factory(
                     )?
                 }
             };
-            save_cached(cache, access, &key, &out)?;
+            save_cached(cache, generation.as_ref(), &key, &mut out)?;
             out
         }
     };

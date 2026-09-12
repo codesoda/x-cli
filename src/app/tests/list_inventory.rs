@@ -130,7 +130,7 @@ fn list_inventory_cli_is_bounded_viewer_only_without_mutations() {
 #[test]
 fn failed_inventory_output_is_not_cached() {
     let cli = Cli::try_parse_from(["xcli", "lists", "list", "--account", "work"]).unwrap();
-    let (access, task) = task::Task::from_command(&cli.command).unwrap();
+    let (_, task) = task::Task::from_command(&cli.command).unwrap();
     let temp = tempfile::tempdir().unwrap();
     let cache = Cache::new(temp.path().canonicalize().unwrap().join("cache"));
     let mut output = Output::new("graphql", Some("123".into()));
@@ -141,7 +141,8 @@ fn failed_inventory_output_is_not_cached() {
     output.request_failed = true;
     output.stop_reason = "request_failed".into();
     assert!(task.accepts_cached(&output)); // Shape is valid; fetch failure prohibits storage.
-    save_cached(&cache, access, &task.key(), &output).unwrap();
+    let generation = cache.capture_generation().unwrap();
+    save_cached(&cache, Some(&generation), &task.key(), &mut output).unwrap();
     assert!(
         cache
             .get("graphql", Some("123"), &task.key(), 300)

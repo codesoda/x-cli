@@ -79,7 +79,13 @@ Directory-specific checklists live in
   public/other-account caches. Verify identity before authenticated cache hits.
   Preserve bounded storage, private permissions, atomic descriptor-relative
   writes, symlink/hardlink checks and persisted cooldowns. Purge content without
-  clearing rate-limit state. Cached content is not encrypted at rest.
+  clearing rate-limit state. A single global generation in `cache/generation.rs`
+  fences managed pre-invalidation writes: advance before purge deletion, capture
+  before content fetch, compare/put under `.cache.lock`, never hold that lock over
+  upstream/credential work. Preserve generation metadata; corruption/overflow
+  fails closed. Scoped purge may suppress unrelated in-flight writes, not their
+  existing content/hits. Direct low-level `Cache::put` is uncoordinated. This is
+  not post-mutation journal recovery. Cached content is not encrypted at rest.
 - `src/pagination.rs`: bound requests, detect repeated cursors, retain partial
   results on later failure, and never infer exhaustive collections from cursor
   exhaustion. Failed requests are not empty successes or fresh cache entries.

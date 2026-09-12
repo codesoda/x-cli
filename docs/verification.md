@@ -1,5 +1,41 @@
 # Implementation verification
 
+## Cache generation barrier — v0.9.1 preparation, 2026-09-12
+
+Executed locally against the uncommitted `fix/cache-generation-barrier` working
+tree. New tests use only canonical temporary roots, synthetic registrations,
+normalized graph results and fake public responses. Controlled callbacks trigger
+scope/global purge during the first fake content request; channel completion
+before the response verifies no cache lock spans upstream work. Returned post,
+parent/reply, user and list data survives a generation mismatch with a static
+warning, without stale storage or refetch; later invocations can cache again.
+
+Additional regressions cover root-bound tokens, initial zero, increment-before-
+delete (including deletion failure), corrupt/unsupported metadata, u64 overflow,
+foreign roots, private link/permission protections, oversized matching writes,
+preserved unrelated content/hits/config/cooldowns/journal and legacy purge
+semantics. Real app flow tests retain Viewer/handle gates, shape and actor checks,
+no-cache bypass, refresh/TTL-zero participation and failed-request non-storage.
+
+| Check | Result |
+| --- | --- |
+| `cargo fmt --all -- --check` | Passed |
+| `cargo test --locked --offline generation` | 19 focused tests passed |
+| `cargo test --locked --offline app::retrieval::tests` | 18 direct flow tests passed |
+| `cargo test --locked --offline purge` | 18 focused tests passed |
+| `cargo test --locked --offline` | 244 passed (223 lib, 6 CLI, 11 installer, 4 update) |
+| `cargo test --locked --offline --features live-tests --test live` | 3 offline guards passed; 11 live cases ignored |
+| `cargo clippy --locked --offline --all-targets --all-features -- -D warnings` | Passed |
+| `git diff --check` | Passed |
+
+No live/network test, browser, Keychain, real data access, Aislop, commit, push,
+tag or release was performed. Primary review and the remaining full gates
+(separate locked build, MSRV, rustdoc, Aislop and hosted CI/release verification)
+are not claimed by this preparation record. Generations do not establish
+upstream freshness, physical power-loss guarantees or complete post-mutation
+recovery; journal/policy/protocol and storage-eligibility requirements remain.
+The original-README audit remains an unchanged historical v0.7.0 baseline.
+
 ## Authenticated retrieval flow — v0.8.1 preparation, 2026-09-12
 
 Executed locally on macOS arm64 against the uncommitted

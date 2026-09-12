@@ -12,12 +12,15 @@ use std::{cell::RefCell, collections::VecDeque, path::PathBuf, rc::Rc};
 
 mod boundaries;
 mod flow;
+mod generation;
+mod generation_collections;
+mod generation_controls;
 mod public;
 
 const ACTOR: &str = "123";
 const OTHER: &str = "789";
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Event {
     Load,
     Connect,
@@ -25,6 +28,9 @@ enum Event {
     Users(Operation, String, u32, Option<String>),
     Metadata(String, String),
     Read(String, String),
+    Lookup(String),
+    Posts(Operation, String),
+    Lists(String),
 }
 type Events = Rc<RefCell<Vec<Event>>>;
 
@@ -61,6 +67,10 @@ struct FakeFactory {
     bootstrap_error: Option<Kind>,
     viewer: Result<Identity>,
     pages: RefCell<VecDeque<Result<UsersPage>>>,
+    post_pages: RefCell<VecDeque<Result<Page>>>,
+    list_pages: RefCell<VecDeque<Result<ListsPage>>>,
+    content_hook: RefCell<Option<Box<dyn FnOnce()>>>,
+    viewer_hook: RefCell<Option<Box<dyn FnOnce()>>>,
 }
 impl FakeFactory {
     fn new(events: Events) -> Self {
@@ -69,6 +79,15 @@ impl FakeFactory {
             bootstrap_error: None,
             viewer: Ok(identity(ACTOR, "fixture")),
             pages: RefCell::new(VecDeque::new()),
+            post_pages: RefCell::new(VecDeque::new()),
+            list_pages: RefCell::new(VecDeque::new()),
+            content_hook: RefCell::new(None),
+            viewer_hook: RefCell::new(None),
+        }
+    }
+    fn content(&self) {
+        if let Some(hook) = self.content_hook.take() {
+            hook();
         }
     }
     fn page(&self, cursor: Option<&str>) {
@@ -93,16 +112,25 @@ struct FakeReadGraph<'a>(&'a FakeFactory);
 impl ReadGraph for FakeReadGraph<'_> {
     fn identity(&self) -> Result<Identity> {
         self.0.events.borrow_mut().push(Event::Viewer);
+        if let Some(hook) = self.0.viewer_hook.take() {
+            hook();
+        }
         self.0.viewer.clone()
     }
-    fn user(&self, _: &str) -> Result<Identity> {
-        panic!("unexpected user lookup")
+    fn user(&self, handle: &str) -> Result<Identity> {
+        self.0
+            .events
+            .borrow_mut()
+            .push(Event::Lookup(handle.into()));
+        self.0.content();
+        Ok(identity(OTHER, "other_fixture"))
     }
     fn read(&self, id: &str, account: &str) -> Result<Output> {
         self.0
             .events
             .borrow_mut()
             .push(Event::Read(id.into(), account.into()));
+        self.0.content();
         let mut out = Output::new("graphql", Some(account.into()));
         out.posts.push(Post {
             id: id.into(),
@@ -118,8 +146,17 @@ impl ReadGraph for FakeReadGraph<'_> {
         out.stop_reason = "single_post".into();
         Ok(out)
     }
-    fn page(&self, _: Operation, _: &str, _: u32, _: Option<&str>) -> Result<Page> {
-        panic!("unexpected post page")
+    fn page(&self, op: Operation, target: &str, _: u32, _: Option<&str>) -> Result<Page> {
+        self.0
+            .events
+            .borrow_mut()
+            .push(Event::Posts(op, target.into()));
+        self.0.content();
+        self.0
+            .post_pages
+            .borrow_mut()
+            .pop_front()
+            .expect("unexpected post page")
     }
     fn users_page(
         &self,
@@ -134,6 +171,7 @@ impl ReadGraph for FakeReadGraph<'_> {
             count,
             cursor.map(str::to_owned),
         ));
+        self.0.content();
         self.0
             .pages
             .borrow_mut()
@@ -145,6 +183,7 @@ impl ReadGraph for FakeReadGraph<'_> {
             .events
             .borrow_mut()
             .push(Event::Metadata(id.into(), account.into()));
+        self.0.content();
         let mut out = Output::new("graphql", Some(account.into()));
         out.lists = Some(vec![ListInfo {
             id: id.into(),
@@ -163,8 +202,14 @@ impl ReadGraph for FakeReadGraph<'_> {
         out.stop_reason = "single_list".into();
         Ok(out)
     }
-    fn lists_page(&self, _: &str, _: u32, _: Option<&str>) -> Result<ListsPage> {
-        panic!("unexpected list page")
+    fn lists_page(&self, actor: &str, _: u32, _: Option<&str>) -> Result<ListsPage> {
+        self.0.events.borrow_mut().push(Event::Lists(actor.into()));
+        self.0.content();
+        self.0
+            .list_pages
+            .borrow_mut()
+            .pop_front()
+            .expect("unexpected list page")
     }
 }
 
