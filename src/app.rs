@@ -64,10 +64,32 @@ pub fn execute(
             )
         }
         Command::Cache {
-            command: CacheCommand::Purge,
+            command:
+                CacheCommand::Purge {
+                    account,
+                    connection,
+                },
         } => {
-            cache.purge()?;
-            Ok(json!({"purged":true,"rate_limit_cooldowns_preserved":true}))
+            // Also fail closed for callers constructing Cli without clap.
+            if account.is_none() && connection.is_some() {
+                return Err(Error::new(
+                    Kind::InvalidInput,
+                    "cache purge --connection requires --account",
+                ));
+            }
+            if let Some(selector) = account {
+                // Local registration only: never load a session or verify Viewer
+                // to delete content. No profile is selected for authenticated use.
+                let config = Config::load(&root)?;
+                let id = config.resolve_account_id(selector, connection.as_deref())?;
+                cache.invalidate_scope("graphql", Some(id))?;
+                Ok(
+                    json!({"purged":true,"backend":"graphql","account_id":id,"rate_limit_cooldowns_preserved":true}),
+                )
+            } else {
+                cache.purge()?;
+                Ok(json!({"purged":true,"rate_limit_cooldowns_preserved":true}))
+            }
         }
         Command::Auth { command } => {
             auth::execute(command, &root, &cache, t, credentials, discover)

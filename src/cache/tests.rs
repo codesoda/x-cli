@@ -1,4 +1,5 @@
 use super::*;
+mod purge;
 fn fixture() -> (tempfile::TempDir, Cache) {
     let dir = tempfile::tempdir().unwrap();
     let cache = Cache::new(dir.path().canonicalize().unwrap().join("state"));

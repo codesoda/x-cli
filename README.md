@@ -60,7 +60,7 @@ checks that the archive contains exactly the `xcli` binary reporting the expecte
 version, and installs atomically to `~/.local/bin/xcli` without sudo. Add
 `~/.local/bin` to PATH. To inspect before executing, download `install.sh` first
 and run it with `sh install.sh --release` (see `sh install.sh --help` for the
-full mode and environment contract). Set `XCLI_VERSION=v0.8.2` to pin a release,
+full mode and environment contract). Set `XCLI_VERSION=v0.9.0` to pin a release,
 or `XCLI_INSTALL_DIR=/your/bin` to choose the destination. Downloads are
 anonymous `curl` by default (`XCLI_DOWNLOAD_MODE=auto|curl`); set
 `XCLI_DOWNLOAD_MODE=gh` to use an authenticated GitHub CLI instead. Archives and
@@ -134,7 +134,9 @@ xcli followers list --account work --max-pages 2 --no-cache
 xcli search "rust" --account work --cursor '<next_cursor>' --max-pages 1
 
 xcli doctor
-xcli cache purge
+xcli cache purge # all cached content; preserves registrations and cooldowns
+xcli cache purge --account work # local registered-account GraphQL scope only
+xcli cache purge --account @codesoda --connection connection-1
 
 # Explicit self-update: check only, interactive confirm, or approve with -y.
 xcli update --check
@@ -245,6 +247,34 @@ unverified. No create/update/delete, pin/subscription or membership writes exist
 
 `--backend fxtwitter --account work` and authenticated-only operations on FxTwitter are rejected. There is no automatic provider/account fallback. All requests are bounded by a 30-second timeout and an 8 MiB response limit. There are **no automatic retries**. Rate-limit responses persist a backend/account-scoped cooldown; honor the returned retry advice.
 
+### Local cache maintenance
+
+`cache purge --account <alias|@handle> [--connection <id>]` is implemented for
+v0.9.0. It deletes only the GraphQL content scope for the stable ID in local
+registration metadata, without reading cached content, loading credentials,
+inspecting browser profiles, verifying Viewer or contacting any provider. It can
+remove stale registered-account content even if Chrome has since changed accounts;
+its `account_id` is not a claim about the current browser session.
+
+Multiple profiles registered to the same stable ID need no preference for this
+local deletion. A last-verified `@handle` mapping to different stable IDs remains
+ambiguous; use an agreeing `--connection` to disambiguate. Unknown/empty selectors
+and mismatched connections fail before deletion. This exception does not change
+normal authenticated read/auth connection selection or Viewer checks.
+
+Scoped success is `{"purged":true,"backend":"graphql","account_id":"<stable-id>","rate_limit_cooldowns_preserved":true}`.
+Missing content is harmless. `--connection` requires `--account`; backend, TTL,
+refresh, no-cache and paging flags are rejected rather than ignored. With neither
+selector, `cache purge` retains its global behavior and original JSON,
+without loading configuration (even malformed configuration does not block it).
+Both modes preserve registrations and cooldowns; scoped deletion also leaves
+public/other-account scopes and the obsolete mixed cache untouched.
+
+Purge is **point-in-time deletion**, not a concurrency barrier: an in-flight read
+may refill the scope afterward. It neither revokes a browser session nor enables
+mutations; future post-mutation invalidation needs account read/write serialization
+or generations plus journal recovery (see [mutation safety](docs/mutation-safety.md)).
+
 ### Updating
 
 `xcli update --check` reports the installed and latest released versions without changing anything. `xcli update` installs a strictly newer stable release only after an interactive terminal confirmation; `-y`/`--yes` skips the prompt and is required when stdin is not a terminal—without it the command fails before any network use. Updates never run automatically, never downgrade or reinstall an equal version, and only support the published native macOS artifacts (Apple Silicon and Intel); other platforms fail with exit 7—rebuild from source instead. The archive's SHA-256 is verified against the published checksum manifest **before** the candidate binary is ever executed; only the root-level `xcli` file is extracted, its `--version` is validated against the release, and the current executable (resolved through symlinks) is replaced atomically, remaining untouched on any failure. Update speaks only anonymous HTTPS to GitHub's release endpoints with bounded redirects, timeouts and download sizes, uses a transport separate from X reads carrying no session material, and never touches accounts, caches or credentials; `--data-dir` is rejected rather than ignored.
@@ -325,7 +355,7 @@ Errors are JSON on stderr; results are JSON on stdout. GraphQL failures may incl
 - Config/cache directories use Unix `0700` and files `0600`, atomic writes, and symlink checks. Caches are separated by backend and stable account ID, and from public caches. Cached content is **not encrypted at rest**; protect your user account/disk/backups. Storage is bounded to 64 backend/account scopes, each with at most 128 entries / 4 MiB; oldest entries/scopes are evicted. Custom state paths must not traverse symlinks (on macOS use `/private/tmp`, not `/tmp`).
 - State writes and lock acquisition synchronize every directory link before descent, including existing ancestors on retries. This adds synchronization cost and may report storage errors (exit 11) on writable ancestors previously unchecked. Only existing namespace descriptors marked readonly by fd-based mount flags are exempt; all writable sync failures propagate. Recovery assumes stable mount/path topology, storage honoring sync and independently durable readonly namespaces—readonly flags alone are not persistence proof. This is not a power-loss-safe mutation journal; see [durability assumptions](docs/mutation-safety.md#local-durability-audit--2026-09-12).
 - Public and authenticated cache hits must match the requested result type; legacy/wrong-shaped users or lists records are refetched, not returned as empty post results.
-- `xcli cache purge` removes all cached content, not connection configuration or rate-limit cooldowns. `--no-cache` avoids content caching but still honors rate limits. Remove the local config to revoke xcli's connection registrations; this does not revoke Chrome's session at X.
+- `xcli cache purge` removes all cached content, not connection configuration or rate-limit cooldowns. Add `--account <alias|@handle>` to delete only that registered stable account's GraphQL scope locally, without credentials or a fresh Viewer check; an optional agreeing `--connection` disambiguates reused handles. No content is exposed. This is point-in-time deletion; in-flight reads can refill it. `--no-cache` on read commands avoids content caching but still honors rate limits. Remove the local config to revoke xcli's connection registrations; this does not revoke Chrome's session at X.
 - `doctor` is deliberately local-only and does not inspect profiles, access Keychain, or test authentication.
 
 ## Status and limitations

@@ -149,6 +149,14 @@ impl Cache {
             state::prune_files(&self.root.join("content"), Some(filename), MAX_SCOPES)
         })
     }
+    /// Delete only this backend/account's content at a point in time, without
+    /// decoding it. Cooldowns survive. In-flight reads may refill the scope;
+    /// this is not sufficient coordination for future post-mutation invalidation.
+    pub fn invalidate_scope(&self, backend: &str, account: Option<&str>) -> Result<()> {
+        state::with_lock(&self.root.join(".cache.lock"), || {
+            state::remove_file(&self.scope_path(backend, account)?)
+        })
+    }
     /// Remove cached content only. Cooldowns and their deadlines survive a purge.
     pub fn purge(&self) -> Result<()> {
         state::with_lock(&self.root.join(".cache.lock"), || {

@@ -192,6 +192,17 @@ impl Config {
             Ok(&c.identity.id)
         }
     }
+    /// Resolve a registered stable ID for local account-only maintenance, not
+    /// authentication. No profile is selected or authorized, so same-ID profiles
+    /// need no preference. Reused handles spanning different IDs remain ambiguous.
+    /// An explicit connection uses the normal selector/connection matching rules.
+    pub fn resolve_account_id(&self, selector: &str, connection: Option<&str>) -> Result<&str> {
+        if connection.is_some() {
+            return Ok(&self.resolve(Some(selector), connection)?.identity.id);
+        }
+        self.validate()?;
+        self.selector_identity(selector)
+    }
     pub fn resolve(&self, selector: Option<&str>, connection: Option<&str>) -> Result<&Connection> {
         self.validate()?;
         if let Some(id) = connection {

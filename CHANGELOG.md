@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-12
+
+### Added
+
+- Local-only `cache purge --account <alias|@handle> [--connection <id>]`
+  deletes only the registered stable account's GraphQL content scope, preserving
+  public/other-account content, configuration and rate-limit cooldowns. No
+  credentials, browser discovery, Viewer verification or provider requests occur.
+  Same-ID profiles need no preference for this maintenance command; reused
+  handles mapping to different IDs require an agreeing explicit connection.
+- Targeted invalidation unlinks the selected scope under the existing cache lock
+  without decoding content or enumerating other scopes. Missing scopes are
+  harmless; symlink/hardlink targets are not followed or chmodded and unexpected
+  directories fail. Global purge behavior and JSON remain unchanged, including
+  when configuration is malformed. Read-only access flags are rejected here.
+- Offline synthetic scope/selector/security and full-dispatch no-external-access
+  regression coverage. Normal authenticated read resolution is unchanged.
+
+### Documentation
+
+- Scoped purge is local point-in-time deletion, not fresh browser identity proof
+  or post-mutation coordination: in-flight reads can refill content. Future
+  mutations still need account read/write serialization or generations and
+  journal `invalidation_pending` recovery. No POST, policy, journal or mutation
+  activation is added; the original-README audit remains a historical baseline.
+
 ## [0.8.2] - 2026-09-12
 
 ### Fixed

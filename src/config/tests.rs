@@ -45,6 +45,41 @@ fn same_id_aliases_do_not_bypass_connection_ambiguity() {
     assert_eq!(c.resolve(None, Some(&a.id)).unwrap().id, a.id);
 }
 #[test]
+fn local_account_resolution_needs_no_profile_preference() {
+    let mut c = Config::default();
+    let a = add(&mut c, "Default", "first", "1", "alice");
+    let b = add(&mut c, "Profile 1", "second", "1", "renamed");
+    add(&mut c, "Profile 2", "alice", "2", "bob");
+    for selector in ["FIRST", "second", "@ALICE", "@renamed"] {
+        assert_eq!(c.resolve_account_id(selector, None).unwrap(), "1");
+        assert!(c.resolve(Some(selector), None).is_err());
+    }
+    assert_eq!(c.resolve_account_id("alice", None).unwrap(), "2");
+    assert_eq!(c.resolve_account_id("first", Some(&b.id)).unwrap(), "1");
+    assert_eq!(c.resolve_account_id("@alice", Some(&a.id)).unwrap(), "1");
+    // Explicit handle matching is connection-specific, even for the same ID.
+    assert!(c.resolve_account_id("@alice", Some(&b.id)).is_err());
+    for selector in ["", "missing", "@missing", "@", "bob"] {
+        assert!(c.resolve_account_id(selector, None).is_err());
+        assert!(c.resolve_account_id(selector, Some(&a.id)).is_err());
+    }
+    assert!(c.resolve_account_id("alice", Some(&a.id)).is_err());
+    assert!(c.resolve_account_id("first", Some("missing")).is_err());
+}
+#[test]
+fn local_account_resolution_rejects_reused_handles_and_invalid_config() {
+    let mut c = Config::default();
+    let a = add(&mut c, "Default", "first", "1", "same");
+    let b = add(&mut c, "Profile 1", "second", "2", "same");
+    assert!(c.resolve_account_id("@same", None).is_err());
+    assert_eq!(c.resolve_account_id("@SAME", Some(&a.id)).unwrap(), "1");
+    assert_eq!(c.resolve_account_id("@same", Some(&b.id)).unwrap(), "2");
+    c.default = Some("missing".into());
+    assert!(c.resolve_account_id("first", None).is_err());
+    assert!(c.resolve_account_id("first", Some(&a.id)).is_err());
+    assert!(Config::default().resolve_account_id("first", None).is_err());
+}
+#[test]
 fn reject_invalid_profiles_aliases_and_duplicates_without_mutating() {
     let mut c = Config::default();
     for profile in [
