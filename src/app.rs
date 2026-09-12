@@ -154,6 +154,24 @@ pub fn human(value: &Value) -> String {
                 ));
             }
         }
+        if let Some(lists) = &out.lists {
+            for list in lists {
+                s.push_str(&format!("\n{} · {}\n", list.name, list.id));
+                if let Some(visibility) = &list.visibility {
+                    s.push_str(match visibility {
+                        crate::model::ListVisibility::Public => "Visibility: public\n",
+                        crate::model::ListVisibility::Private => "Visibility: private\n",
+                    });
+                }
+                if let Some(owner) = &list.owner {
+                    s.push_str(&format!("Owner: @{} · {}\n", owner.handle, owner.id));
+                }
+                if let Some(description) = &list.description {
+                    s.push_str(&format!("{description}\n"));
+                }
+                s.push_str(&format!("{}\n", list.url));
+            }
+        }
         if let Some(cursor) = out.next_cursor {
             s.push_str(&format!("\nNext cursor: {cursor}\n"));
         }

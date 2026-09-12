@@ -58,7 +58,7 @@ pub enum Command {
         #[command(subcommand)]
         command: LikesCommand,
     },
-    /// Read posts from a specified list (no list or membership mutations).
+    /// Read a known list's metadata, posts or members (no mutations).
     Lists {
         #[command(subcommand)]
         command: ListsCommand,
@@ -128,6 +128,12 @@ pub enum LikesCommand {
 }
 #[derive(Debug, Subcommand)]
 pub enum ListsCommand {
+    /// Read a single list's metadata; requires its decimal ID and explicit --account.
+    Show {
+        list_id: String,
+        #[command(flatten)]
+        access: Access,
+    },
     /// Read list membership; no membership changes.
     Members {
         #[command(subcommand)]

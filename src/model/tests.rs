@@ -5,9 +5,11 @@ fn legacy_post_output_omits_users_and_still_deserializes() {
     let output = Output::new("fxtwitter", None);
     let value = serde_json::to_value(&output).unwrap();
     assert!(value.get("users").is_none());
+    assert!(value.get("lists").is_none());
     assert_eq!(value["posts"], serde_json::json!([]));
     let restored: Output = serde_json::from_value(value).unwrap();
     assert!(restored.users.is_none());
+    assert!(restored.lists.is_none());
 }
 
 #[test]
@@ -23,6 +25,9 @@ fn users_are_explicit_even_when_empty_and_render_as_profiles() {
         handle: "fixture".into(),
     });
     let value = serde_json::to_value(&output).unwrap();
+    assert!(value.get("lists").is_none());
+    let restored: Output = serde_json::from_value(value.clone()).unwrap();
+    assert!(restored.lists.is_none() && restored.users.is_some());
     let rendered = crate::app::human(&value);
     assert!(rendered.contains("@fixture · 456"));
     assert!(rendered.contains("https://x.com/fixture"));

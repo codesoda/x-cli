@@ -2,8 +2,8 @@
 
 Phase 2 development was explicitly authorized on 2026-09-12. Live X mutations
 were not authorized. The read-only increments are `bookmarks list` and own-account
-`likes list`, plus the latest-post list view `lists posts`. Bookmark writes,
-list metadata/discovery and mutations, and like/unlike/follow/unfollow writes
+`likes list`, plus list posts, members and known-list metadata. Bookmark writes,
+list discovery and mutations, and like/unlike/follow/unfollow writes
 remain future work. Own-account following/follower reads are available experimentally. Posting and DMs remain out of scope. Source verification and offline tests must not be presented as live
 interoperability.
 
@@ -42,8 +42,9 @@ Implemented experimentally in v0.4.0:
 specific list. It requires an explicit account even for a public list, validates
 the positive decimal list ID before external access, and scopes cache keys by
 list ID, pagination and the existing verified-account boundary. There is no
-ranked/public-provider fallback or complete-list claim. List discovery/metadata, create/update/delete, and
-membership changes are separate capabilities, not implied by timeline support.
+ranked/public-provider fallback or complete-list claim. List metadata is a separate
+capability (below); discovery, create/update/delete and membership changes remain
+unimplemented, not implied by timeline support.
 Live list permissions and interoperability require separate consented evidence.
 
 ## Own-account relationship reads
@@ -65,6 +66,20 @@ pagination in the verified-account cache scope. It requires explicit account
 selection, validates list IDs, and exposes no membership-changing commands.
 Source evidence and synthetic tests do not verify private-list permissions or
 exhaustive membership.
+
+## Known-list metadata
+
+Implemented experimentally for v0.7.0: `lists show <list-id> --account ...`.
+This non-paginated GET read requires an explicit account and canonical positive
+list ID. Viewer identity verification precedes private cache access; the optional
+metadata owner never selects the actor. Output is `posts:[]` plus one `lists`
+record, with nullable description, visibility and owner, and no `users` field.
+Unknown/missing visibility is not public by default. Missing/malformed metadata
+fails closed without inferred deletion/private-denial claims. Completeness means
+only one metadata record. Cache shapes are checked so legacy entries missing
+`lists` cannot masquerade as success; account isolation and plaintext-at-rest
+warnings apply. Discovery and mutations remain blocked; no live verification is
+claimed.
 
 ## Scope
 - [ ] Lists: view, create, update, delete, and manage membership.
@@ -105,6 +120,12 @@ Implemented experimentally in v0.6.0 (synthetic coverage, not live-verified):
 
 ```sh
 xcli lists members list 123456789 --account @codesoda
+```
+
+Implemented experimentally for v0.7.0 (synthetic coverage, not live-verified):
+
+```sh
+xcli lists show 123456789 --account @codesoda
 ```
 
 Proposed commands below remain unimplemented:

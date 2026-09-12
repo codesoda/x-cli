@@ -40,6 +40,23 @@ The first implementation can keep an empty production mutation allowlist and
 exercise this state machine with injected transports only. A foundation release
 must not advertise working add/remove/create/delete commands.
 
+## Local durability audit — 2026-09-12
+
+Inspection of `src/state/unix.rs` confirms that `write` syncs the temporary file,
+renames it relative to the pinned parent descriptor, then syncs that immediate
+parent. However, `parent(..., create=true)` currently creates missing ancestor
+directories with `mkdirat` and repairs their private permissions without syncing
+the newly created directory and its containing directory before descending.
+No synthetic unit test establishes power-loss persistence of that directory
+chain. Existing atomic replacement tests are not sufficient evidence for a
+mutation journal's pre-dispatch durability.
+
+Before dispatch-capable journaling, fix and review directory-chain durability
+using the already-pinned descriptors, propagate sync errors before dispatch, and
+test nested creation, failures and restart behavior. Do not describe current
+storage as a verified power-loss-safe mutation journal. No journal or mutation
+transport has been added by this audit.
+
 ## Bookmark source evidence — 2026-09-12
 
 Anonymous static inspection used current
