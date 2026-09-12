@@ -58,6 +58,11 @@ pub enum Command {
         #[command(subcommand)]
         command: LikesCommand,
     },
+    /// Read posts from a specified list (no list or membership mutations).
+    Lists {
+        #[command(subcommand)]
+        command: ListsCommand,
+    },
     Auth {
         #[command(subcommand)]
         command: AuthCommand,
@@ -105,6 +110,17 @@ pub enum BookmarkCommand {
 pub enum LikesCommand {
     /// List your own liked posts; requires explicit --account, never a target user.
     List {
+        #[command(flatten)]
+        access: Access,
+        #[command(flatten)]
+        paging: Paging,
+    },
+}
+#[derive(Debug, Subcommand)]
+pub enum ListsCommand {
+    /// Read the latest-post view of a list; requires its decimal ID and explicit --account.
+    Posts {
+        list_id: String,
         #[command(flatten)]
         access: Access,
         #[command(flatten)]

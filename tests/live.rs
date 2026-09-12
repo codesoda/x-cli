@@ -238,33 +238,38 @@ fn authenticated_connection() -> (PathBuf, String, xcli::config::Connection) {
 #[test]
 #[ignore = "local private bookmark test; requires consent and explicit registered account/profile"]
 fn authenticated_bookmark_smoke() {
-    private_collection_smoke("bookmarks", "authenticated bookmarks");
+    private_collection_smoke(&["bookmarks", "list"], "authenticated bookmarks");
 }
 
 #[test]
 #[ignore = "local private likes test; requires consent and explicit registered account/profile"]
 fn authenticated_own_likes_smoke() {
-    private_collection_smoke("likes", "authenticated own likes");
+    private_collection_smoke(&["likes", "list"], "authenticated own likes");
 }
 
-fn private_collection_smoke(operation: &str, stage: &str) {
+#[test]
+#[ignore = "local list-post test; requires consent, explicit account/profile and list ID"]
+fn authenticated_list_posts_smoke() {
+    require_opt_in(true);
+    let list_id = required("XCLI_LIVE_LIST_ID");
+    xcli::input::id(&list_id).expect("XCLI_LIVE_LIST_ID must be a positive decimal list ID");
+    private_collection_smoke(&["lists", "posts", &list_id], "authenticated list posts");
+}
+
+fn private_collection_smoke(operation: &[&str], stage: &str) {
     let (root, account, connection) = authenticated_connection();
-    let output = run(
-        &root,
-        &[
-            operation,
-            "list",
-            "--account",
-            &account,
-            "--connection",
-            &connection.id,
-            "--max-pages",
-            "1",
-            "--page-size",
-            "5",
-        ],
-        stage,
-    );
+    let mut args = operation.to_vec();
+    args.extend([
+        "--account",
+        &account,
+        "--connection",
+        &connection.id,
+        "--max-pages",
+        "1",
+        "--page-size",
+        "5",
+    ]);
+    let output = run(&root, &args, stage);
     assert!(output.provenance.backend == "graphql");
     assert!(
         output.provenance.account_id.as_ref() == Some(&connection.identity.id),

@@ -154,6 +154,26 @@ unavailable on accounts routed to X's newer History UI; stop on rejection or
 rate limits rather than trying another account or endpoint. Share only the fixed
 stage, exit code and typed diagnostic, never private liked-post content.
 
+## Separate list-post smoke test
+
+`authenticated_list_posts_smoke` is separately ignored and requires
+`XCLI_LIVE_LIST_ID` in addition to the explicit account/profile/consent guards.
+It validates the list ID before loading credentials, reads at most one page of
+five posts, and withholds all captured content. After installing v0.4.0 or newer,
+a consenting user may run (replace the example ID with the intended list):
+
+```sh
+XCLI_LIVE=1 XCLI_LIVE_AUTH=1 \
+XCLI_LIVE_ACCOUNT=work XCLI_LIVE_PROFILE=Default XCLI_LIVE_LIST_ID=123456789 \
+XCLI_LIVE_BINARY="$HOME/.local/bin/xcli" \
+cargo test --locked --features live-tests --test live authenticated_list_posts_smoke -- --ignored --test-threads=1
+```
+
+The agent has not run this test. It does not discover lists or verify membership
+permissions; an inaccessible list is a failure, not permission to use another
+account or a public/ranked fallback. Share only the fixed stage, exit code and
+typed diagnostic, never private list posts or raw responses.
+
 ## Verification evidence
 
 On 2026-09-10, the original public checks passed before moving into this

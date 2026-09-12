@@ -1,6 +1,7 @@
 use super::*;
 use clap::Parser;
 mod likes;
+mod lists;
 
 struct NoExternalAccess;
 impl Transport for NoExternalAccess {
@@ -128,15 +129,20 @@ fn local_account_commands_preserve_registration_behavior() {
 
 #[test]
 fn bookmark_cache_never_bypasses_session_loading_or_cooldown() {
-    private_collection_cache_guards("bookmarks");
+    private_collection_cache_guards(&["bookmarks", "list"]);
 }
 
 #[test]
 fn own_likes_cache_never_bypasses_session_loading_or_cooldown() {
-    private_collection_cache_guards("likes");
+    private_collection_cache_guards(&["likes", "list"]);
 }
 
-fn private_collection_cache_guards(operation: &str) {
+#[test]
+fn list_posts_cache_never_bypasses_session_loading_or_cooldown() {
+    private_collection_cache_guards(&["lists", "posts", "456"]);
+}
+
+fn private_collection_cache_guards(operation: &[&str]) {
     struct Expired;
     impl CredentialProvider for Expired {
         fn load(&self, profile: &str, consent: bool) -> Result<crate::credentials::Session> {
@@ -161,16 +167,10 @@ fn private_collection_cache_guards(operation: &str) {
         )
     })
     .unwrap();
-    let cli = Cli::try_parse_from([
-        "xcli",
-        "--data-dir",
-        root.to_str().unwrap(),
-        operation,
-        "list",
-        "--account",
-        "work",
-    ])
-    .unwrap();
+    let mut args = vec!["xcli", "--data-dir", root.to_str().unwrap()];
+    args.extend_from_slice(operation);
+    args.extend(["--account", "work"]);
+    let cli = Cli::try_parse_from(args).unwrap();
     let (_, task) = task::Task::from_command(&cli.command).unwrap();
     let cache = Cache::new(root.join("cache"));
     cache
