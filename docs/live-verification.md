@@ -57,6 +57,25 @@ XCLI_LIVE_ACCOUNT=work XCLI_LIVE_PROFILE=Default \
 cargo test --locked --features live-tests --test live authenticated_read_smoke -- --ignored --test-threads=1
 ```
 
+By default CLI smoke tests invoke the Cargo-built executable. To verify a
+trusted installed release instead, set `XCLI_LIVE_BINARY` to its absolute path:
+
+```sh
+XCLI_LIVE=1 XCLI_LIVE_AUTH=1 \
+XCLI_LIVE_ACCOUNT=work XCLI_LIVE_PROFILE=Default \
+XCLI_LIVE_BINARY="$HOME/.local/bin/xcli" \
+cargo test --locked --features live-tests --test live authenticated_read_smoke -- --ignored --test-threads=1
+```
+
+Check the installed executable's `--version` first and record it with the test
+result. The override must name an existing absolute file; empty, relative,
+missing, or directory paths fail rather than falling back to the Cargo binary.
+Only select a trusted binary: it will receive the local data-directory path and
+account selector. All consent/CI/profile guards still apply. The override also
+applies to `public_post_and_parent_chain`, but not `public_manifest`, which
+exercises the source library rather than an executable. Setting the override
+alone never enables live tests. No installed authenticated run is claimed here.
+
 The test requires both account and profile names, resolves the existing local
 connection, and verifies that it matches the named profile **before loading
 credentials**. Use `XCLI_LIVE_CONNECTION=connection-N` when necessary to explicitly
