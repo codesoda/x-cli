@@ -48,6 +48,11 @@ pub enum Command {
         #[command(subcommand)]
         command: UserCommand,
     },
+    /// Read private bookmarks (requires explicit --account; no bookmark mutations).
+    Bookmarks {
+        #[command(subcommand)]
+        command: BookmarkCommand,
+    },
     Auth {
         #[command(subcommand)]
         command: AuthCommand,
@@ -75,6 +80,16 @@ pub enum Command {
 pub enum UserCommand {
     Posts {
         handle: String,
+        #[command(flatten)]
+        access: Access,
+        #[command(flatten)]
+        paging: Paging,
+    },
+}
+#[derive(Debug, Subcommand)]
+pub enum BookmarkCommand {
+    /// List the selected account's bookmarks; never claims an exhaustive collection.
+    List {
         #[command(flatten)]
         access: Access,
         #[command(flatten)]
@@ -219,6 +234,36 @@ mod tests {
         assert!(Cli::try_parse_from(["xcli", "read", "20", "--alias", "work"]).is_err());
         assert!(Cli::try_parse_from(["xcli", "search", "q", "--max-pages", "0"]).is_err());
         assert!(Cli::try_parse_from(["xcli", "likes", "add", "20"]).is_err());
+    }
+    #[test]
+    fn bookmarks_contract() {
+        let cli = Cli::try_parse_from([
+            "xcli",
+            "bookmarks",
+            "list",
+            "--account",
+            "work",
+            "--max-pages",
+            "2",
+            "--page-size",
+            "5",
+        ])
+        .unwrap();
+        assert!(matches!(
+            cli.command,
+            Command::Bookmarks {
+                command: BookmarkCommand::List { .. }
+            }
+        ));
+        for args in [
+            vec!["xcli", "bookmarks", "add", "20", "--account", "work"],
+            vec!["xcli", "bookmarks", "remove", "20", "--account", "work"],
+            vec!["xcli", "bookmarks", "list", "--max-pages", "0"],
+            vec!["xcli", "bookmarks", "list", "--page-size", "101"],
+            vec!["xcli", "bookmarks", "list", "--refresh", "--no-cache"],
+        ] {
+            assert!(Cli::try_parse_from(args).is_err());
+        }
     }
     #[test]
     fn update_contract() {

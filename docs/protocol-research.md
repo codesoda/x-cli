@@ -173,6 +173,60 @@ compare only the successful browser request's method and operation path (not
 cookies, headers, query variables, a HAR, or a copied cURL command) before changing
 transport or IDs.
 
+### Phase 2 bookmark-read evidence — 2026-09-12
+
+Public `/explore` now advertises
+[main.ef8e0e0fdc2bb9c0a.js](https://abs.twimg.com/responsive-web/client-web/main.ef8e0e0fdc2bb9c0a.js),
+1,125,707 bytes, SHA-256
+`290a24f210c6b7310e3abe0abbf935a748e6b48719db6c9bf30782b44c206e59`.
+All six existing query IDs and complete operation metadata match the old main.
+The original pinned main remains available with its recorded hash; the runtime
+public authorization-value source and existing operations are unchanged.
+
+Bookmarks is defined separately in
+[shared~bundle.BookmarkFolders~bundle.Bookmarks.2be1bbc341bba456a.js](https://abs.twimg.com/responsive-web/client-web/shared~bundle.BookmarkFolders~bundle.Bookmarks.2be1bbc341bba456a.js),
+95,436 bytes, SHA-256
+`c1fc402b73ee04bf5d03964285e0bbd0939cf4916f11cd3a227293fd59e84a33`.
+Module 842483 declares `queryId:"tF6KOjmZM0WGcB2Q0mfwhw"`,
+`operationName:"Bookmarks"`, `operationType:"query"`. This definition is not
+present in the old pinned main and is not attributed to it. The auxiliary source
+was inspected statically, not executed or downloaded at runtime.
+
+Module 426820 imports that definition and calls:
+
+```js
+fetchBookmarksTimeline:({count:r,cursor:s})=>
+  e.graphQL(p(),{count:r,cursor:s,includePromotedContent:!0,...(0,i.g)(t)},
+    (e,t)=>!t?.bookmark_timeline_v2?.timeline)
+    .then(e=>e?.bookmark_timeline_v2?.timeline||k.yB)
+```
+
+The shared helper spreads an empty export (module 812055) in
+[vendor.b78f62166e835d11a.js](https://abs.twimg.com/responsive-web/client-web/vendor.b78f62166e835d11a.js),
+SHA-256 `ba857ea02535f311863f0b092c9d9a96ed76a3956496a0135b1f3d1428455cdd`.
+The query has no `forcePost`; the normal adapter uses GET with JSON variables,
+features, and `content-type: application/json`. The implemented variable shape
+is `{count, cursor?, includePromotedContent:true}`: no user ID, voice flag,
+folder selector, or call-site field toggles. The request supplies an empty
+field-toggle object. Its declared 39 feature names exactly match post set P,
+and its eight declared toggles match the other collection operations. Reusing
+feature membership is source-supported; authenticated values remain unverified.
+
+The raw response root is
+`/data/bookmark_timeline_v2/timeline/instructions`. The browser adapter removes
+`data` before the quoted continuation. Unlike the browser's empty-state fallback,
+xcli treats a missing root as a protocol error. The Bookmarks timeline uses
+formatter 225219, which consumes `instructions`, including add/replace entries
+and modules. Cursor parser 669251 reads `cursorType`/`value`; shared cursor logic
+recognizes `Bottom`. These support the existing bounded parser, not a claim of
+complete schemas or exhaustive bookmarks.
+
+Only public source was fetched. No credentials, guest activation, authenticated
+requests, or live mutation tests were used. `Bookmarks` is a read query; folder,
+add, and remove operations are excluded. Live interoperability, account-specific
+feature values and server count behavior remain unverified. The separately
+observed search HTTP 404 is not resolved by this research.
+
 ## 3. macOS Chrome credential access: supported boundary
 
 First-party source snapshot: Chromium **`233e625e16284f1f1e11150b88ea16e43c325c37`**, inspected 2026-09-10. This is mainline source, **not a verified installed/released Chrome build**:

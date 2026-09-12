@@ -34,7 +34,9 @@ Directory-specific checklists live in
 - Phase 1 is read-only. No X mutations, posting, DMs, account/proxy rotation,
   browser-session switching or protection bypasses. Phase 2 is separately tracked
   in [issue #1](https://github.com/codesoda/x-cli/issues/1); do not implement it
-  incidentally while fixing reads.
+  incidentally while fixing reads. Phase 2 development was explicitly authorized
+  on 2026-09-12; the first increment is read-only bookmark listing. Live mutations
+  remain unauthorized, and this increment must not expose write commands.
 - Browser connection, Keychain access and authenticated live testing require
   explicit user consent. Never inspect real cookies or secrets through tools or
   put them in model context, logs, fixtures, errors or PRs.
@@ -55,6 +57,8 @@ Directory-specific checklists live in
 - `src/providers/`: isolated upstream definitions, transport use and parsing.
   Ordinary public reads use FxTwitter; explicit account selection implies X
   GraphQL. Never fall back from authenticated access to a public provider.
+  Private bookmark reads require explicit `--account` (not just a default or
+  connection), reuse stable-ID-scoped storage, and never claim completeness.
 - `src/credentials.rs` and `src/credentials/`: session API and local credential
   access. Read [src/credentials/AGENTS.md](src/credentials/AGENTS.md) before editing
   either, including the sibling facade that nested instructions do not scope.

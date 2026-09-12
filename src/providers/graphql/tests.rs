@@ -1,4 +1,5 @@
 use super::*;
+mod bookmarks;
 struct Mock {
     status: u16,
     body: Value,

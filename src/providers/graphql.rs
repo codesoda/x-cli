@@ -145,6 +145,7 @@ impl<'a> Graphql<'a> {
             Operation::Timeline => {
                 json!({"userId":target,"count":count,"includePromotedContent":false,"withQuickPromoteEligibilityTweetFields":false,"withVoice":false})
             }
+            Operation::Bookmarks => json!({"count":count,"includePromotedContent":true}),
             _ => {
                 return Err(Error::new(
                     Kind::Unsupported,
