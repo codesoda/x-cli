@@ -60,7 +60,7 @@ checks that the archive contains exactly the `xcli` binary reporting the expecte
 version, and installs atomically to `~/.local/bin/xcli` without sudo. Add
 `~/.local/bin` to PATH. To inspect before executing, download `install.sh` first
 and run it with `sh install.sh --release` (see `sh install.sh --help` for the
-full mode and environment contract). Set `XCLI_VERSION=v0.6.0` to pin a release,
+full mode and environment contract). Set `XCLI_VERSION=v0.8.1` to pin a release,
 or `XCLI_INSTALL_DIR=/your/bin` to choose the destination. Downloads are
 anonymous `curl` by default (`XCLI_DOWNLOAD_MODE=auto|curl`); set
 `XCLI_DOWNLOAD_MODE=gh` to use an authenticated GitHub CLI instead. Archives and
@@ -323,6 +323,7 @@ Errors are JSON on stderr; results are JSON on stdout. GraphQL failures may incl
 - Browser credentials never go to FxTwitter or the public web-client asset host. Authenticated redirects are disabled; transport origins are allowlisted.
 - GraphQL definitions are pinned to a reviewed first-party source snapshot. A public web-client asset is downloaded without cookies and hash-verified to obtain its public authorization value. No remote JavaScript is executed. Asset/query churn fails closed instead of trying historical IDs.
 - Config/cache directories use Unix `0700` and files `0600`, atomic writes, and symlink checks. Caches are separated by backend and stable account ID, and from public caches. Cached content is **not encrypted at rest**; protect your user account/disk/backups. Storage is bounded to 64 backend/account scopes, each with at most 128 entries / 4 MiB; oldest entries/scopes are evicted. Custom state paths must not traverse symlinks (on macOS use `/private/tmp`, not `/tmp`).
+- Public and authenticated cache hits must match the requested result type; legacy/wrong-shaped users or lists records are refetched, not returned as empty post results.
 - `xcli cache purge` removes all cached content, not connection configuration or rate-limit cooldowns. `--no-cache` avoids content caching but still honors rate limits. Remove the local config to revoke xcli's connection registrations; this does not revoke Chrome's session at X.
 - `doctor` is deliberately local-only and does not inspect profiles, access Keychain, or test authentication.
 
@@ -334,7 +335,7 @@ Errors are JSON on stderr; results are JSON on stdout. GraphQL failures may incl
 | Parent-chain traversal | Implemented; bounded, explicit missing-parent handling |
 | macOS Chrome connection/Keychain | Synthetic coverage plus user-reported successful local connection/read stages; not accessed by the coding agent |
 | X Viewer/post/replies/search/timeline | User-reported post/parent/reply smoke checks passed; search failed with exit 8, timeline not reached; see live-verification notes |
-| Cache/account routing/security | Implemented; deterministic tests |
+| Cache/account routing/security | Implemented; direct synthetic Viewer → request/cache flow and fail-closed integration tests; see [verification](docs/verification.md) |
 | Media, quotes, metrics, articles | Not normalized in this initial text-focused model; no promise of full rich-post fidelity |
 | Self-update (`xcli update`) | Available starting with v0.1.2; offline-tested, explicit-only updates |
 | Other browser/OS authentication | Unsupported |

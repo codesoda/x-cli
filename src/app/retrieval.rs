@@ -7,11 +7,16 @@ use crate::{
     error::{Error, Kind, Result, storage},
     model::Output,
     pagination,
-    providers::{fx, graphql::Graphql, operations::Operation},
+    providers::{fx, operations::Operation},
     transport::Transport,
 };
 use serde_json::Value;
 use std::path::Path;
+
+mod source;
+use source::{DefaultFactory, GraphFactory, ReadGraph};
+#[cfg(test)]
+mod tests;
 
 pub(super) fn execute(
     root: &Path,
@@ -21,11 +26,25 @@ pub(super) fn execute(
     t: &dyn Transport,
     credentials: &dyn CredentialProvider,
 ) -> Result<Value> {
+    execute_with_factory(root, cache, access, task, t, credentials, &DefaultFactory)
+}
+
+fn execute_with_factory(
+    root: &Path,
+    cache: &Cache,
+    access: &Access,
+    task: Task,
+    t: &dyn Transport,
+    credentials: &dyn CredentialProvider,
+    factory: &impl GraphFactory,
+) -> Result<Value> {
     let backend = route(access, task.requires_graphql())?;
     let key = task.key();
     let out = if backend == Backend::Fxtwitter {
         cache.check_cooldown("fxtwitter", None)?;
-        if let Some(hit) = cached(cache, access, "fxtwitter", None, &key)? {
+        if let Some(hit) =
+            cached(cache, access, "fxtwitter", None, &key)?.filter(|hit| task.accepts_cached(hit))
+        {
             hit
         } else {
             let fetch = |id: &str| rate_call(cache, "fxtwitter", None, || fx::read(t, id));
@@ -48,7 +67,7 @@ pub(super) fn execute(
         let account = Some(connection.identity.id.as_str());
         cache.check_cooldown("graphql", account)?;
         let session = credentials.load(&connection.profile, true)?;
-        let graph = rate_call(cache, "graphql", account, || Graphql::new(t, &session))?;
+        let graph = rate_call(cache, "graphql", account, || factory.connect(t, &session))?;
         let actual = rate_call(cache, "graphql", account, || graph.identity())?;
         verify_identity(&connection.identity, &actual)?;
         if access

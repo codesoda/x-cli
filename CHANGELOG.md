@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-09-12
+
+### Added
+
+- Direct offline authenticated retrieval integration coverage using a private
+  read-graph factory, synthetic sessions/Viewer results and real temporary
+  config/cache files. Covers following/followers miss → hit, Viewer-before-cache
+  (including corrupt content), legacy shape refetch, changed handles, bootstrap
+  and expired-Viewer failures, persisted cooldowns, partial rate-limited pages,
+  public isolation and list-owner versus actor identity.
+- The production factory still calls the unchanged hash-verifying GraphQL
+  constructor; provider tests retain exact wire-request coverage. These tests do
+  not establish live X/Chrome interoperability or close mutation/platform gaps.
+  The original README audit remains a historical v0.7.0 baseline.
+
+### Fixed
+
+- Public cache hits now apply the same requested-result shape filter as
+  authenticated hits. Wrong-shaped users/lists records are bypassed and replaced
+  by a successful public fetch rather than returned for a post request; valid
+  public cache behavior and credential-free routing are unchanged.
+
 ## [0.8.0] - 2026-09-12
 
 ### Added

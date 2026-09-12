@@ -1,5 +1,56 @@
 # Implementation verification
 
+## Authenticated retrieval flow — v0.8.1 preparation, 2026-09-12
+
+Executed locally on macOS arm64 against the uncommitted
+`test/authenticated-cache-flow` working tree. This closes the specific direct
+integration-test gap recorded in [the original README audit](original-readme-audit.md),
+not its broader completion requirements. That audit remains an unchanged
+historical **v0.7.0** baseline, including its then-outstanding gaps.
+
+The new private retrieval tests use real temporary account registration/config
+resolution and cache files, synthetic credential loading, and an injected
+read-only graph factory. They run the production orchestration path, including
+Viewer verification before content, explicit-handle validation, operation/actor
+mapping, pagination, cache writes and persisted rate limits. Evidence covers:
+
+- Following and followers misses target only the verified actor; subsequent
+  disk-cache hits still load/connect/query Viewer, with no content request.
+- Mismatched Viewer fails with the static identity error before populated or
+  deliberately corrupt content can be read. Expired Viewer, bootstrap failure,
+  changed explicit handles and existing cooldowns also stop before content.
+- Legacy wrong-shaped authenticated records refetch after matching Viewer.
+  List metadata owners do not become the actor or cache scope for subsequent reads.
+- A later-page rate limit preserves partial users, is not saved as a fresh
+  collection, persists its cooldown and stops the next invocation before
+  credentials; no retry or fallback occurs.
+- Public reads and valid hits never invoke credentials/the graph factory even
+  with an authenticated default, corrupt private content and private cooldown.
+  Wrong-shaped public users/lists records are replaced by a synthetic Fx response.
+- The production entry still calls the unchanged GraphQL constructor: an
+  anonymous synthetic bootstrap response with the wrong hash fails before Viewer.
+  No hash bypass or real authorization fixture was introduced.
+
+| Check | Result |
+| --- | --- |
+| `cargo fmt --all -- --check` | Passed |
+| `cargo test --locked --offline app::retrieval::tests` | 10 direct flow tests passed |
+| `cargo test --locked --offline` | 201 tests passed (180 lib, 6 CLI, 11 installer, 4 update integration) |
+| `cargo test --locked --offline --features live-tests --test live` | 3 offline guards passed; 11 live cases ignored |
+
+These tests substitute normalized graph results; unchanged provider tests cover
+wire request definitions and parsing separately. Neither establishes live X
+interoperability, private-list permissions or real Chrome/Keychain compatibility.
+The preparation run used no live test, browser, Keychain or real credentials.
+The primary then inspected the actual factory/test changes and reran the full
+local gates successfully: stable locked build/test, formatting, all-target/
+all-feature Clippy, warnings-denied rustdoc, Rust 1.88 locked build/test and
+offline live guards, and Aislop with its existing configuration. GitHub CI and
+published-install verification are recorded separately after they run; local
+passes do not establish them. Historical results below are not fresh passes.
+No mutation, policy/journal, credential-loading or state-durability changes are
+included. Version/package/lock/README notes prepare v0.8.1, not evidence of publication.
+
 ## Self-update and dual-mode installer — verified 2026-09-11
 
 Executed locally on macOS arm64 against the uncommitted working tree containing
