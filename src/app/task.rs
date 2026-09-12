@@ -1,5 +1,5 @@
 use crate::{
-    cli::{Access, BookmarkCommand, Command, LikesCommand, Paging, UserCommand},
+    cli::{Access, BookmarkCommand, Command, LikesCommand, ListsCommand, Paging, UserCommand},
     error::{Error, Kind, Result},
 };
 use serde_json::json;
@@ -11,6 +11,7 @@ pub(super) enum Task {
     Timeline(String, Paging),
     Bookmarks(Paging),
     Likes(Paging),
+    ListPosts(String, Paging),
 }
 impl Task {
     pub(super) fn from_command(command: &Command) -> Result<(&Access, Self)> {
@@ -97,6 +98,32 @@ impl Task {
                 }
                 (access, Task::Likes(paging.clone()))
             }
+            Command::Lists {
+                command:
+                    ListsCommand::Posts {
+                        list_id,
+                        access,
+                        paging,
+                    },
+            } => {
+                if access
+                    .account
+                    .as_deref()
+                    .is_none_or(|value| value.is_empty())
+                {
+                    return Err(Error::new(
+                        Kind::InvalidInput,
+                        "List-post reads require an explicit --account selector",
+                    ));
+                }
+                let id = crate::input::id(list_id).map_err(|_| {
+                    Error::new(
+                        Kind::InvalidInput,
+                        "Expected a positive decimal list ID (at most 20 digits)",
+                    )
+                })?;
+                (access, Task::ListPosts(id, paging.clone()))
+            }
             _ => unreachable!(),
         };
         task.validate()?;
@@ -109,7 +136,8 @@ impl Task {
             | Self::Search(_, p)
             | Self::Timeline(_, p)
             | Self::Bookmarks(p)
-            | Self::Likes(p) => p,
+            | Self::Likes(p)
+            | Self::ListPosts(_, p) => p,
         };
         if paging
             .cursor
@@ -130,6 +158,7 @@ impl Task {
                 | Self::Timeline(..)
                 | Self::Bookmarks(..)
                 | Self::Likes(..)
+                | Self::ListPosts(..)
                 | Self::Thread(_, _, true, _)
         )
     }
@@ -147,6 +176,9 @@ impl Task {
                 p.cursor
             ])
             .to_string(),
+            Self::ListPosts(id, p) => {
+                json!(["v1", "list_posts", id, p.max_pages, p.page_size, p.cursor]).to_string()
+            }
             Self::Likes(p) => {
                 json!(["v1", "own_likes", p.max_pages, p.page_size, p.cursor]).to_string()
             }

@@ -17,6 +17,7 @@ pub enum Operation {
     Timeline,
     Bookmarks,
     Likes,
+    ListPosts,
 }
 impl Operation {
     pub fn name(self) -> &'static str {
@@ -29,6 +30,7 @@ impl Operation {
             Self::Timeline => "UserTweets",
             Self::Bookmarks => "Bookmarks",
             Self::Likes => "Likes",
+            Self::ListPosts => "ListLatestTweetsTimeline",
         }
     }
     pub fn id(self) -> &'static str {
@@ -43,6 +45,7 @@ impl Operation {
             Self::Bookmarks => "tF6KOjmZM0WGcB2Q0mfwhw",
             // Reviewed current main's Likes query; not an arbitrary-user capability.
             Self::Likes => "o000A_Cp4JPOihhbeEgi0g",
+            Self::ListPosts => "u6PUF1835XGBkf6MQZUV8A",
         }
     }
     pub fn root(self) -> &'static str {
@@ -54,6 +57,7 @@ impl Operation {
             Self::User => "/data/user/result",
             Self::Timeline | Self::Likes => "/data/user/result/timeline/timeline/instructions",
             Self::Bookmarks => "/data/bookmark_timeline_v2/timeline/instructions",
+            Self::ListPosts => "/data/list/tweets_timeline/timeline/instructions",
         }
     }
     pub fn features(self) -> Value {
@@ -79,8 +83,8 @@ impl Operation {
         Value::Object(map)
     }
     pub fn toggles(self) -> Value {
-        if self == Self::Bookmarks {
-            // The reviewed fetchBookmarksTimeline call supplies no field toggles.
+        if matches!(self, Self::Bookmarks | Self::ListPosts) {
+            // These reviewed callers supply no field toggles.
             json!({})
         } else if self == Self::Likes {
             json!({"withArticlePlainText":false})

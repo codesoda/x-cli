@@ -2,7 +2,8 @@
 
 Phase 2 development was explicitly authorized on 2026-09-12. Live X mutations
 were not authorized. The read-only increments are `bookmarks list` and own-account
-`likes list`; bookmark writes, lists, like/unlike writes, and follows remain
+`likes list`, plus the latest-post list view `lists posts`. Bookmark writes,
+list metadata/discovery and mutations, like/unlike writes, and follows remain
 future work. Posting and DMs remain out of scope. Source verification and offline tests must not be presented as live
 interoperability.
 
@@ -34,6 +35,17 @@ wrong user discriminators as protocol errors. Source evidence and synthetic test
 cannot establish live availability; absent authoritative definitions are a stop
 condition.
 
+## Latest list-post reads
+
+Implemented experimentally in v0.4.0:
+`lists posts <list-id> --account <alias|@handle>` is a bounded read of posts in a
+specific list. It requires an explicit account even for a public list, validates
+the positive decimal list ID before external access, and scopes cache keys by
+list ID, pagination and the existing verified-account boundary. There is no
+ranked/public-provider fallback or complete-list claim. List discovery/metadata, create/update/delete, and
+membership changes are separate capabilities, not implied by timeline support.
+Live list permissions and interoperability require separate consented evidence.
+
 ## Scope
 - [ ] Lists: view, create, update, delete, and manage membership.
 - [ ] Bookmarks: list, add, remove; separately evaluate folders.
@@ -54,6 +66,12 @@ Implemented experimentally in v0.3.0 (synthetic coverage, not live-verified):
 
 ```sh
 xcli likes list --account @codesoda
+```
+
+Implemented experimentally in v0.4.0 (synthetic coverage, not live-verified):
+
+```sh
+xcli lists posts 123456789 --account @codesoda
 ```
 
 Proposed commands below remain unimplemented:

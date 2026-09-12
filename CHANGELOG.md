@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-12
+
+### Added
+
+- Experimental `lists posts <list-id> --account <alias|@handle>` using the
+  source-reviewed latest-list GET query. Requires an explicit account and
+  validated decimal list ID; retains identity-before-cache checks, bounded
+  pagination, private account-scoped caches and conservative completeness.
+  No ranked/public fallback, discovery/metadata or list/membership writes.
+- Synthetic list-post request, module/replacement cursor, repeated cursor,
+  empty/partial results, redaction, input/routing and cache-guard tests; a separate
+  opt-in installed-binary live smoke procedure. Actual list permissions and
+  authenticated interoperability remain unverified.
+
+### Changed
+
+- Split GraphQL response parsing from HTTP/query construction without changing
+  existing normalization or public parser APIs.
+
 ## [0.3.0] - 2026-09-12
 
 ### Added

@@ -281,6 +281,67 @@ support, not successful live interoperability. All fetches were anonymous public
 assets; no browser/Keychain access, authenticated calls, guest activation or
 mutations occurred.
 
+### Phase 2 latest list-post evidence — 2026-09-12
+
+The reviewed latest operation is `ListLatestTweetsTimeline`, query ID
+`u6PUF1835XGBkf6MQZUV8A`, type `query`, in module 678316 of
+[shared chunk 25406](https://abs.twimg.com/responsive-web/client-web/shared~loader.Dock~bundle.BookmarkFolders~bundle.Bookmarks~bundle.Explore~bundle.HomeTimeline~bundle.Notifica.dd20d1d8c1f4a4bca.js),
+152,713 bytes, SHA-256
+`c208d767c6aacb1ce87e30cfe7df7b3cc0d80471fc15d465b0298a59751b9a50`.
+Current main/vendor match the hashes recorded above. Anonymous `/explore`
+redirected to logged-out login HTML; its static webpack map resolved the chunks.
+
+Module 776254 imports the latest definition as `P` and calls:
+
+```js
+fetchTweetsGraphQL(n,i){
+  let{count:r,cursor:a,listId:s,useRanked:l}=n,
+      d=l?K():P(),_={listId:s,count:r,cursor:a,...(0,o.g)(t)};
+  return e.graphQL(d,_,ey)
+    .then(e=>e.list.tweets_timeline?.timeline||ei.yB)
+}
+```
+
+The selected latest branch corresponds to client-only `useRanked:false`; that
+flag is not transmitted and no ranked operation/fallback is implemented. The
+shared-variable helper is again the empty vendor export. Transmitted variables
+are exactly `{listId,count,cursor?}`. No user ID, promoted-content flag or voice
+flag is supplied. The call has no force-POST options or field toggles: the
+adapter uses GET and an empty toggle object. The 39 declared feature names
+exactly match P (including order), verified against the independent bookmark
+fixture; authenticated boolean values remain unverified.
+
+[UserLists bundle](https://abs.twimg.com/responsive-web/client-web/bundle.UserLists.295cb90da11794e5a.js),
+105,316 bytes, SHA-256
+`5f7c8bc573263490bedfedcdb4809c8aa3dba85ea2680b9c235c95d723731bfb`,
+module 286666 defaults `useRanked` to false, supplies `{listId,count,cursor?}`
+plus the client-only mode selector, and uses formatter 225219 with context
+`FETCH_LIST_TIMELINE_GRAPHQL`. The validation predicate requires
+`list.tweets_timeline.timeline`; the raw root is
+`/data/list/tweets_timeline/timeline/instructions`. No top-level `List` typename
+requirement was observed. xcli requires the root, not a fabricated discriminator
+or the browser's empty-state fallback.
+
+[Current API filters](https://abs.twimg.com/responsive-web/client-web/bundle.LoggedInApiFilters.a9f8af9d64457a3aa.js),
+65,328 bytes, SHA-256
+`4605ee073ae503c1c034762d8db6dfcd61f49223d173cc04cb00ecbbf851754f`,
+include this operation in a GET-only prefetch-reuse allowlist. It was absent
+from the inspected session-binding operation list; no GET-to-POST rewrite was
+found. This does not establish all live authentication requirements.
+
+The shared formatter supports add/replace/module/pin/terminate instructions and
+opaque Bottom cursors. xcli retains its strict parser: normal Tweet and wrapped
+Tweet results are normalized, unavailable/tombstone results are not ordinary
+complete posts, and unsupported `TweetPreviewDisplay` results fail rather than
+masquerading as full content. Missing roots are errors. Cursor exhaustion never
+proves an exhaustive list archive.
+
+All research was bounded, anonymous public static-asset inspection. No GraphQL
+requests, JS execution, credentials, guest activation or mutations were used.
+Private-list permissions, account-specific features, inaccessible-list responses
+and live pagination/interoperability remain unverified. List discovery, metadata,
+ranked timelines and membership/write operations are outside this increment.
+
 ## 3. macOS Chrome credential access: supported boundary
 
 First-party source snapshot: Chromium **`233e625e16284f1f1e11150b88ea16e43c325c37`**, inspected 2026-09-10. This is mainline source, **not a verified installed/released Chrome build**:
