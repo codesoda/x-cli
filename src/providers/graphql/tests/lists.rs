@@ -35,8 +35,7 @@ impl Transport for ListPosts {
             expected["cursor"] = json!("opaque + / = next");
         }
         assert_eq!(variables, expected); // No user ID, ranked/promoted/voice flags.
-        let toggles: Value = serde_json::from_str(&parameters["fieldToggles"]).unwrap();
-        assert_eq!(toggles, json!({}));
+        assert!(!parameters.contains_key("fieldToggles"));
         let features: Value = serde_json::from_str(&parameters["features"]).unwrap();
         let names: std::collections::BTreeSet<_> = features
             .as_object()

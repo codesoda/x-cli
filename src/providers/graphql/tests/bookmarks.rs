@@ -28,8 +28,7 @@ impl Transport for Bookmarks {
         let features: Value = serde_json::from_str(&parameters["features"]).unwrap();
         assert_eq!(features, Operation::Detail.features());
         assert_eq!(features.as_object().unwrap().len(), 39);
-        let toggles: Value = serde_json::from_str(&parameters["fieldToggles"]).unwrap();
-        assert_eq!(toggles, json!({}));
+        assert!(!parameters.contains_key("fieldToggles"));
         Ok(self
             .responses
             .borrow_mut()

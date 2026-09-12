@@ -63,7 +63,13 @@ impl<'a> Graphql<'a> {
         url.query_pairs_mut()
             .append_pair("variables", &variables.to_string())
             .append_pair("features", &op.features().to_string());
-        if !matches!(op, Operation::Following | Operation::Followers) {
+        if !matches!(
+            op,
+            Operation::Following
+                | Operation::Followers
+                | Operation::Bookmarks
+                | Operation::ListPosts
+        ) {
             url.query_pairs_mut()
                 .append_pair("fieldToggles", &op.toggles().to_string());
         }

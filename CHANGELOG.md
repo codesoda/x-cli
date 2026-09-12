@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-09-12
+
+### Fixed
+
+- Omit `fieldToggles` on Bookmarks and ListLatestTweetsTimeline requests when
+  their source callers supply no toggle options. Direct adapter reinspection
+  corrected an earlier empty-object assumption; exact-request tests now check
+  omission. This aligns a source contract, not a proven live failure cause.
+
+### Documentation
+
+- Record disabled-by-default mutation safety design and bookmark activation
+  blockers: authoritative exact-post reconciliation and session-binding behavior
+  remain unestablished. No write commands or POST transport are enabled.
+
 ## [0.5.0] - 2026-09-12
 
 ### Added
