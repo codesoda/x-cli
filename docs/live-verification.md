@@ -230,6 +230,28 @@ cooldowns and forwards only typed diagnostics. Stop on failure, identity
 uncertainty, rate limits or denial; no alternate account/provider or mutation is
 attempted. This is a procedure, **not live evidence**; the agent has not run it.
 
+## Separate viewer-visible list inventory smoke test
+
+For a trusted v0.8.0 binary, `authenticated_list_inventory_smoke` is separately
+ignored, never added to existing smoke sequences. It uses the same explicit
+account/profile/connection consent, CI refusal and installed-binary helpers:
+
+```sh
+XCLI_LIVE=1 XCLI_LIVE_AUTH=1 \
+XCLI_LIVE_ACCOUNT=work XCLI_LIVE_PROFILE=Default \
+XCLI_LIVE_BINARY="$HOME/.local/bin/xcli" \
+cargo test --locked --features live-tests --test live authenticated_list_inventory_smoke -- --ignored --test-threads=1
+```
+
+This is a user-run procedure, **not live evidence**; the agent has not run it.
+It requests one page of five lists with `--no-cache`, checks Viewer provenance,
+`posts:[]`, no users, incomplete collection status and section provenance on every
+returned list. Empty inventory is accepted without asserting absence or exhaustive
+ownership. All list names/IDs/owners/flags and raw errors remain withheld. Existing
+cooldowns are preserved; stop on first failure, denial, identity uncertainty or
+rate limit. Some accounts use a different Relay management path; rejection is not
+permission for another query/account/provider, recommendations or mutations.
+
 ## Verification evidence
 
 On 2026-09-10, the original public checks passed before moving into this

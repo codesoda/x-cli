@@ -2,7 +2,10 @@ use crate::{
     error::Result,
     model::{Identity, Output, Post},
 };
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+
+mod lists;
+pub use lists::{ListsPage, collect_lists};
 
 #[cfg(test)]
 mod user_tests;
@@ -24,11 +27,13 @@ struct Items<T> {
 }
 /// Collect a bounded post view. Cursor exhaustion never proves all X content was exposed.
 pub fn collect(
-    out: Output,
+    mut out: Output,
     max_pages: u32,
     start: Option<String>,
     mut fetch: impl FnMut(Option<&str>) -> Result<Page>,
 ) -> Result<Output> {
+    out.users = None;
+    out.lists = None;
     collect_items(
         out,
         max_pages,
@@ -43,6 +48,7 @@ pub fn collect(
         },
         |post: &Post| post.id.as_str(),
         |out, post| out.posts.push(post),
+        |_, _, _| {},
     )
 }
 /// User collections share the same cursor/failure rules and deduplicate by stable ID.
@@ -54,6 +60,7 @@ pub fn collect_users(
 ) -> Result<Output> {
     out.posts.clear();
     out.users = Some(vec![]);
+    out.lists = None;
     collect_items(
         out,
         max_pages,
@@ -73,6 +80,7 @@ pub fn collect_users(
                 .expect("user collection initialized")
                 .push(user);
         },
+        |_, _, _| {},
     )
 }
 fn collect_items<T>(
@@ -82,11 +90,12 @@ fn collect_items<T>(
     mut fetch: impl FnMut(Option<&str>) -> Result<Items<T>>,
     id: impl Fn(&T) -> &str,
     mut append: impl FnMut(&mut Output, T),
+    mut merge_duplicate: impl FnMut(&mut Output, usize, T),
 ) -> Result<Output> {
     out.complete = false;
     let mut cursor = start;
     let mut cursors = HashSet::new();
-    let mut seen = HashSet::new();
+    let mut seen = HashMap::new();
     if let Some(c) = &cursor {
         cursors.insert(c.clone());
     }
@@ -109,7 +118,10 @@ fn collect_items<T>(
         out.pages += 1;
         out.warnings.extend(page.warnings);
         for entry in page.entries {
-            if seen.insert(id(&entry).to_owned()) {
+            if let Some(index) = seen.get(id(&entry)) {
+                merge_duplicate(&mut out, *index, entry);
+            } else {
+                seen.insert(id(&entry).to_owned(), seen.len());
                 append(&mut out, entry);
             }
         }

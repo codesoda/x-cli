@@ -22,6 +22,7 @@ reports are evidence of what was done, not guarantees about current behavior.
 | [docs/verification.md](docs/verification.md) | Recorded implementation-check results and skipped verification. Consult when reporting prior evidence; rerun relevant checks rather than treating historical passes as current ones. |
 | [docs/phase-2.md](docs/phase-2.md) | Preserved future list/bookmark/like/follow scope, proposed commands and mutation safeguards, linked to issue #1. Consult for roadmap boundaries, not authorization to add mutations to Phase 1. |
 | [docs/mutation-safety.md](docs/mutation-safety.md) | Mutation safety foundation, bookmark mutation source evidence, unresolved reconciliation/session-binding blockers; not authorization to activate writes. |
+| [docs/original-readme-audit.md](docs/original-readme-audit.md) | Requirement-to-artifact progress audit of the original design README; historical baseline and explicit remaining gaps, not a completion guarantee. |
 
 Keep this map current when adding, moving or removing `docs/*.md` files.
 Directory-specific checklists live in

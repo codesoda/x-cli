@@ -23,6 +23,9 @@ use libc::{
 };
 static NEXT: AtomicU64 = AtomicU64::new(0);
 
+#[cfg(test)]
+mod tests;
+
 fn name(s: &OsStr) -> Result<CString> {
     CString::new(s.as_bytes()).map_err(|_| storage())
 }
@@ -57,7 +60,20 @@ fn private(file: &File, directory: bool) -> Result<()> {
     }))
     .map_err(|_| storage())
 }
+fn sync_created_directory(parent: &File, child: &File) -> Result<()> {
+    // Persist the new directory/permissions, then its entry in the containing
+    // directory, before creating any descendant state or lock file.
+    child.sync_all().map_err(|_| storage())?;
+    parent.sync_all().map_err(|_| storage())
+}
 fn parent(path: &Path, create: bool) -> Result<Option<(File, CString)>> {
+    parent_with_sync(path, create, sync_created_directory)
+}
+fn parent_with_sync(
+    path: &Path,
+    create: bool,
+    mut sync_created: impl FnMut(&File, &File) -> Result<()>,
+) -> Result<Option<(File, CString)>> {
     let absolute: PathBuf = if path.is_absolute() {
         path.into()
     } else {
@@ -91,6 +107,7 @@ fn parent(path: &Path, create: bool) -> Result<Option<(File, CString)>> {
                 let next = open(&dir, &part, DIRECTORY).map_err(|_| storage())?;
                 // Fix restrictive umasks too (e.g. 0777).
                 private(&next, true)?;
+                sync_created(&dir, &next)?;
                 next
             }
             Err(_) => return Err(storage()),

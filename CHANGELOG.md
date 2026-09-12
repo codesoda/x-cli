@@ -6,6 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-12
+
+### Added
+
+- Experimental `lists list --account ...`: bounded viewer-visible management
+  inventory using the source-reviewed `ListsManagementPageTimeline` GET query.
+  Explicit account selection and Viewer-before-cache checks are required. No
+  arbitrary target user, recommendations, Relay/public fallback or mutations.
+- List placement provenance (`management_sections`) preserves overlapping pinned
+  and owned/subscribed sections across duplicate rows/pages. Flat rows require
+  explicit positive inventory evidence. Optional subscribed/pinned/member flags
+  preserve unknown and false values, including in single-list metadata output.
+  Duplicate conflicts keep first known values and emit a static warning; this is
+  an incomplete visible snapshot, not exhaustive ownership or reconciliation.
+- Synthetic request, strict parser, duplicate merge, pagination/failure/redaction,
+  selector/cache isolation and legacy-output coverage, plus a separately ignored
+  installed-binary smoke procedure. Authenticated inventory availability and the
+  alternative Relay rollout remain **not live-verified**.
+
+### Fixed
+
+- Human output escapes ANSI/C1 and other terminal control characters (except
+  layout newlines/tabs) instead of emitting provider-supplied control sequences.
+  JSON content stays unchanged; use JSON for exact content/cursor values.
+- Newly created state directories and their containing directories are synced
+  before descent. Injected sync failures stop the current operation before
+  descendant records are created. This is not a complete mutation-journal
+  crash/recovery guarantee; remaining durability caveats are documented.
+
+### Documentation
+
+- Added an original-README requirement-to-artifact progress audit with explicit
+  incomplete mutation/platform/live-verification requirements.
+
 ## [0.7.0] - 2026-09-12
 
 ### Added

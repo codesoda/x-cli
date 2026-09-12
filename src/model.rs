@@ -14,6 +14,14 @@ pub enum ListVisibility {
     Public,
     Private,
 }
+/// Observed placement in the viewer's management view; sections may overlap.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ListManagementSection {
+    Pinned,
+    OwnedSubscribed,
+    Unsectioned,
+}
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ListInfo {
     pub id: String,
@@ -21,6 +29,14 @@ pub struct ListInfo {
     pub description: Option<String>,
     pub visibility: Option<ListVisibility>,
     pub owner: Option<Identity>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subscribed: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pinned: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_member: Option<bool>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub management_sections: Vec<ListManagementSection>,
     pub url: String,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,7 +65,7 @@ pub struct Output {
     /// Present (including an empty array) only for user collections. Post output stays compatible.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub users: Option<Vec<Identity>>,
-    /// Present only for list metadata; legacy post/user output stays compatible.
+    /// Present only for list metadata/inventory; legacy post/user output stays compatible.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lists: Option<Vec<ListInfo>>,
     pub provenance: Provenance,

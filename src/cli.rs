@@ -58,7 +58,7 @@ pub enum Command {
         #[command(subcommand)]
         command: LikesCommand,
     },
-    /// Read a known list's metadata, posts or members (no mutations).
+    /// Read viewer-visible list inventory or a known list (no mutations).
     Lists {
         #[command(subcommand)]
         command: ListsCommand,
@@ -128,6 +128,13 @@ pub enum LikesCommand {
 }
 #[derive(Debug, Subcommand)]
 pub enum ListsCommand {
+    /// Read the viewer-visible management inventory; explicit --account, not exhaustive.
+    List {
+        #[command(flatten)]
+        access: Access,
+        #[command(flatten)]
+        paging: Paging,
+    },
     /// Read a single list's metadata; requires its decimal ID and explicit --account.
     Show {
         list_id: String,

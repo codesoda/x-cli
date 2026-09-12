@@ -118,6 +118,9 @@ xcli bookmarks list --account work --max-pages 2 --no-cache
 # Only this verified account's own liked posts; no target-user or write commands.
 xcli likes list --account work --max-pages 2 --no-cache
 
+# Bounded viewer-visible management inventory, not all owned/subscribed lists.
+xcli lists list --account work --max-pages 2 --no-cache
+
 # Metadata and latest-post view of a known list; use its decimal ID, not a post URL.
 xcli lists show 123456789 --account work --no-cache
 xcli lists posts 123456789 --account work --max-pages 2 --no-cache
@@ -215,6 +218,31 @@ list URL. Existing account-isolated cache controls apply; private metadata is
 Missing/null or malformed list data is a protocol error, not evidence of deletion
 or private-list denial. No public fallback, discovery or mutations are added.
 
+`lists list --account <alias|@handle>` is implemented for v0.8.0 as an
+experimental, **not live-verified**, viewer-visible management inventory. An
+explicit account is required even with a default or `--connection`; there is no
+target-user argument. It uses bounded pagination and the verified-account private
+cache, returning `posts:[]` and `lists:[...]`, including an empty array for a valid
+empty view. It always reports `complete:false` (exit 12), not all owned/subscribed
+lists or evidence of absence for mutation reconciliation.
+
+Inventory rows have `management_sections` (`pinned`, `owned_subscribed`, or
+`unsectioned`) recording observed placement. Sections can overlap: duplicates are
+merged by stable list ID without losing first-seen section order, not classified
+into exclusive ownership groups. Flat rows require explicit pinned/subscribed
+true or a known owner matching the verified actor; membership alone is insufficient.
+Optional `subscribed`, `pinned` and `is_member` booleans are also supported in
+`lists show`: omitted means unknown, never false. Missing duplicate metadata is
+filled from later explicit observations; conflicting known values retain the
+first value and add a static warning. This is a visible snapshot, not authoritative
+state reconciliation. Human output shows supplied flags and observed sections.
+
+Some X rollouts use a different Relay management query. Unsupported shapes or
+rejection fail closed: no Relay, recommendation (`ListsDiscovery`), public-provider
+or alternate-account fallback. Private inventory metadata is **not encrypted at
+rest**; use `--no-cache` to avoid storage. Live availability and permissions remain
+unverified. No create/update/delete, pin/subscription or membership writes exist.
+
 `--backend fxtwitter --account work` and authenticated-only operations on FxTwitter are rejected. There is no automatic provider/account fallback. All requests are bounded by a 30-second timeout and an 8 MiB response limit. There are **no automatic retries**. Rate-limit responses persist a backend/account-scoped cooldown; honor the returned retry advice.
 
 ### Updating
@@ -255,7 +283,7 @@ Chrome may prompt for Keychain permission. Denial, unsupported encryption, unkno
 Post/collection results contain:
 
 - `posts`: normalized ID, author ID/handle, text, timestamp when supplied, parent ID/knowledge, canonical URL.
-- User collections add `users`; list metadata adds `lists`. Both use `posts:[]`
+- User collections add `users`; list metadata/inventory adds `lists`. Both use `posts:[]`
   and omit the other optional collection field. Existing post/user JSON is unchanged.
 - `provenance`: backend, authenticated account ID or `null`, Unix-seconds retrieval timestamp, cache `hit`/`miss`, age in seconds.
 - `complete`, `stop_reason`, `pages`, `next_cursor`, and `warnings`.
@@ -263,7 +291,7 @@ Post/collection results contain:
 
 A single post can be complete **as a single post**, not as its surrounding context. Parent-only requests are complete only when a known root is reached. Search, timelines, and reply collections are always conservatively incomplete: cursor exhaustion does not prove X exposed every matching or protected/deleted post. A conversation view may include parent posts and other branches; it is not advertised as a filtered exhaustive direct-reply list.
 
-Later page failures retain obtained posts, mark partial status, and emit a warning rather than claiming an empty success. First-request failure is an error. Request-failure results are not cached. No raw upstream response/error body is printed.
+Later page failures retain obtained posts, users or lists, mark partial status, and emit a warning rather than claiming an empty success. First-request failure is an error. Request-failure results are not cached. No raw upstream response/error body is printed.
 
 | Exit | Meaning |
 | --- | --- |
@@ -279,6 +307,10 @@ Later page failures retain obtained posts, mark partial status, and emit a warni
 | 10 | Browser-session identity mismatch |
 | 11 | Local state/configuration/cache error |
 | 12 | Partial collection, with usable JSON on stdout |
+
+Human rendering escapes terminal control characters other than newlines and tabs;
+JSON retains the original content through JSON string escaping. Use JSON when
+exact content or cursor bytes matter.
 
 Errors are JSON on stderr; results are JSON on stdout. GraphQL failures may include a `diagnostic` containing only a fixed stage label and numeric HTTP/upstream error code—never raw response strings or headers. Scripts must explicitly accept exit 12 when consuming bounded collections. Help/version are conventional text. IDs, content, and cursor values should always be treated as untrusted upstream data.
 
@@ -312,6 +344,7 @@ Errors are JSON on stderr; results are JSON on stdout. GraphQL failures may incl
 | Following/follower lists | Experimental own-account user collections; synthetic tests only, live behavior unverified |
 | List-member reads | Experimental user collection; synthetic tests only, live permissions unverified |
 | Known-list metadata | Experimental single-record read for v0.7.0; synthetic tests only, live permissions/interoperability unverified |
+| Viewer-visible list-management inventory | Experimental bounded read for v0.8.0; synthetic tests only, Relay rollout/live availability unverified |
 | Phase 2 mutations | Unimplemented; [issue #1](https://github.com/codesoda/x-cli/issues/1) |
 
 **Remaining live-verification blockers:** the user-observed search failure and untested timeline stage need further consented local evidence. Broader released-Chrome compatibility, X account-specific feature values, required transaction headers, identity semantics and pagination variants also remain unverified. The current client uses a documented public feature snapshot plus conservative optional-variable choices. It does not fabricate transaction IDs or circumvent browser/OS/network challenges. On rejection, capture only xcli's redacted error kind/exit code and operation name—not cookies or raw responses. See [protocol evidence and attempted alternatives](docs/protocol-research.md) and the [safe local live-verification sequence](docs/live-verification.md).

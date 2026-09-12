@@ -2,8 +2,9 @@
 
 Phase 2 development was explicitly authorized on 2026-09-12. Live X mutations
 were not authorized. The read-only increments are `bookmarks list` and own-account
-`likes list`, plus list posts, members and known-list metadata. Bookmark writes,
-list discovery and mutations, and like/unlike/follow/unfollow writes
+`likes list`, plus list posts, members, known-list metadata and bounded
+viewer-visible management inventory. Bookmark writes, recommendation discovery
+and mutations, and like/unlike/follow/unfollow writes
 remain future work. Own-account following/follower reads are available experimentally. Posting and DMs remain out of scope. Source verification and offline tests must not be presented as live
 interoperability.
 
@@ -81,6 +82,25 @@ only one metadata record. Cache shapes are checked so legacy entries missing
 warnings apply. Discovery and mutations remain blocked; no live verification is
 claimed.
 
+## Viewer-visible list-management inventory
+
+Implemented experimentally for v0.8.0: `lists list --account <alias|@handle>`.
+This bounded GET query has no target user; Viewer verification precedes the
+private cache. It returns incomplete `lists` output, not all owned/subscribed
+lists. Observed `management_sections` can overlap; stable-ID deduplication unions
+first-seen section provenance. Unsectioned rows need positive pinned/subscribed
+flags or a known owner matching the verified actor. `is_member` is not ownership
+or inventory evidence. Optional booleans preserve false vs unknown in inventory
+and single-list metadata. Later observations fill missing values, but conflicts
+keep the first known value with a static warning, never reconciliation certainty.
+
+The reviewed non-Relay operation is separate from recommendations and from an
+alternative Relay rollout with different aliases/owner projection. Missing or
+unsupported shapes fail closed; no fallback or exhaustive absence claim is made.
+Private metadata is not encrypted at rest. Existing bounds, cooldowns, partial
+failure retention and `--no-cache` apply. No mutations or live availability are
+established by source evidence and synthetic tests.
+
 ## Scope
 - [ ] Lists: view, create, update, delete, and manage membership.
 - [ ] Bookmarks: list, add, remove; separately evaluate folders.
@@ -126,6 +146,12 @@ Implemented experimentally for v0.7.0 (synthetic coverage, not live-verified):
 
 ```sh
 xcli lists show 123456789 --account @codesoda
+```
+
+Implemented experimentally for v0.8.0 (synthetic coverage, not live-verified):
+
+```sh
+xcli lists list --account @codesoda --max-pages 2 --no-cache
 ```
 
 Proposed commands below remain unimplemented:

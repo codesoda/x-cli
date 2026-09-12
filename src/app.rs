@@ -132,6 +132,20 @@ fn save_cached(cache: &Cache, a: &Access, key: &str, out: &Output) -> Result<()>
     Ok(())
 }
 pub fn human(value: &Value) -> String {
+    // Posts and list names/descriptions are untrusted terminal text. Preserve
+    // layout newlines/tabs but never emit ANSI/C1/other control sequences.
+    let rendered = render_human(value);
+    let mut safe = String::with_capacity(rendered.len());
+    for character in rendered.chars() {
+        if character.is_control() && !matches!(character, '\n' | '\t') {
+            safe.extend(character.escape_default());
+        } else {
+            safe.push(character);
+        }
+    }
+    safe
+}
+fn render_human(value: &Value) -> String {
     if let Some(update) = crate::update::human(value) {
         return update;
     }
@@ -168,6 +182,29 @@ pub fn human(value: &Value) -> String {
                 }
                 if let Some(description) = &list.description {
                     s.push_str(&format!("{description}\n"));
+                }
+                for (label, value) in [
+                    ("Subscribed", list.subscribed),
+                    ("Pinned", list.pinned),
+                    ("Member", list.is_member),
+                ] {
+                    if let Some(value) = value {
+                        s.push_str(&format!("{label}: {value}\n"));
+                    }
+                }
+                if !list.management_sections.is_empty() {
+                    let sections: Vec<_> = list
+                        .management_sections
+                        .iter()
+                        .map(|section| match section {
+                            crate::model::ListManagementSection::Pinned => "pinned",
+                            crate::model::ListManagementSection::OwnedSubscribed => {
+                                "owned_subscribed"
+                            }
+                            crate::model::ListManagementSection::Unsectioned => "unsectioned",
+                        })
+                        .collect();
+                    s.push_str(&format!("Management sections: {}\n", sections.join(", ")));
                 }
                 s.push_str(&format!("{}\n", list.url));
             }

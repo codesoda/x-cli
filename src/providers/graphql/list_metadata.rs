@@ -34,8 +34,20 @@ pub(super) fn parse(value: &Value) -> Result<ListInfo> {
         description,
         visibility,
         owner,
+        subscribed: optional_bool(value, "following")?,
+        pinned: optional_bool(value, "pinning")?,
+        is_member: optional_bool(value, "is_member")?,
+        management_sections: vec![],
         url: format!("https://x.com/i/lists/{id}"),
     })
+}
+
+fn optional_bool(value: &Value, field: &str) -> Result<Option<bool>> {
+    match value.get(field) {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::Bool(boolean)) => Ok(Some(*boolean)),
+        _ => Err(protocol()),
+    }
 }
 
 fn optional_string<'a>(value: &'a Value, field: &str) -> Result<Option<&'a str>> {

@@ -20,6 +20,7 @@ pub enum Operation {
     ListPosts,
     ListMembers,
     ListMetadata,
+    ListInventory,
     Following,
     Followers,
 }
@@ -37,6 +38,7 @@ impl Operation {
             Self::ListPosts => "ListLatestTweetsTimeline",
             Self::ListMembers => "ListMembers",
             Self::ListMetadata => "ListByRestId",
+            Self::ListInventory => "ListsManagementPageTimeline",
             Self::Following => "Following",
             Self::Followers => "Followers",
         }
@@ -57,6 +59,8 @@ impl Operation {
             Self::ListMembers => "ljlktihgwXeYTfHwwiPj5A",
             // Shared chunk 25406, module 913676, operationType=query.
             Self::ListMetadata => "EAARFZGlY-JHdLJbKZAA5g",
+            // Shared chunk 25406, module 631330, operationType=query.
+            Self::ListInventory => "XU4wZWEjElhe--6doqFolA",
             Self::Following => "4EQGMEhtdVw8NeVBDQHESQ",
             Self::Followers => "sF7aRC2fRq7OGOOp_qHntA",
         }
@@ -75,6 +79,7 @@ impl Operation {
             Self::ListPosts => "/data/list/tweets_timeline/timeline/instructions",
             Self::ListMembers => "/data/list/members_timeline/timeline/instructions",
             Self::ListMetadata => "/data/list",
+            Self::ListInventory => "/data/viewer/list_management_timeline/timeline/instructions",
         }
     }
     pub fn features(self) -> Value {
@@ -101,7 +106,10 @@ impl Operation {
         Value::Object(map)
     }
     pub fn toggles(self) -> Value {
-        if matches!(self, Self::Bookmarks | Self::ListPosts | Self::ListMetadata) {
+        if matches!(
+            self,
+            Self::Bookmarks | Self::ListPosts | Self::ListMetadata | Self::ListInventory
+        ) {
             // These reviewed callers supply no field toggles.
             json!({})
         } else if self == Self::Likes {
