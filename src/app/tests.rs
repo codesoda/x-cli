@@ -1,5 +1,6 @@
 use super::*;
 use clap::Parser;
+mod cache_purge;
 mod human_output;
 mod likes;
 mod list_inventory;

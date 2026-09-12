@@ -101,6 +101,22 @@ Private metadata is not encrypted at rest. Existing bounds, cooldowns, partial
 failure retention and `--no-cache` apply. No mutations or live availability are
 established by source evidence and synthetic tests.
 
+## Local account cache maintenance
+
+Implemented for v0.9.0: `cache purge --account <alias|@handle>` with optional
+agreeing `--connection` deletes only the registered stable account's GraphQL
+content scope. This is local maintenance, not authenticated access: no credentials,
+profile discovery, Viewer or provider call. Same-ID profiles need no preference
+here; ambiguous reused handles still fail without disambiguation. Normal read/auth
+resolution remains unchanged, and global purge still works without valid config.
+Public/other-account scopes, registration metadata and cooldowns are preserved.
+
+The primitive is only point-in-time deletion. In-flight reads may refill it;
+future post-mutation cleanup still needs account read/write serialization or
+generations and journal `invalidation_pending` recovery. No write policy, journal,
+POST transport or mutation activation is included. The original-README audit
+remains a historical baseline, not a claim that mutation safeguards are complete.
+
 ## Scope
 - [ ] Lists: view, create, update, delete, and manage membership.
 - [ ] Bookmarks: list, add, remove; separately evaluate folders.

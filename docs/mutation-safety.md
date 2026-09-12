@@ -87,6 +87,33 @@ power-loss-safe mutation journaling. Future journal activation still requires
 eligible persistent storage, the policy/outcome protocol above and separate live
 consent. No journal, POST capability or mutation activation has been added.
 
+## Local account cache invalidation — v0.9.0, 2026-09-12
+
+`cache purge --account <alias|@handle> [--connection <id>]` is local-only
+maintenance. It resolves a registered stable ID from configuration and removes
+only its GraphQL scope via `Cache::invalidate_scope`, under `.cache.lock` using
+descriptor-relative `state::remove_file`. There is no scope enumeration or
+content decoding; malformed/missing content does not require a provider request.
+Symlink/hardlink entries are unlinked without following or chmodding their targets;
+unexpected directories fail. Other scopes, cooldowns, config and any journal
+records are not removed. Global purge is unchanged and never loads config.
+
+The local resolver selects no browser profile and authorizes no session. Same-ID
+profiles need no preference; handles reused across stable IDs remain ambiguous
+unless an explicit connection agrees. No fresh Viewer identity is claimed, so
+stale registered-account content can be cleared even if Chrome changed accounts.
+Authenticated read/auth selection and identity checks are unchanged.
+
+This is **local point-in-time deletion only**, not sufficient post-mutation
+coordination. The cache lock serializes the unlink with cache writes, but a read
+already in flight can subsequently refill stale content. Future mutation
+activation needs account read/write serialization or cache generations, defined
+lock ordering and journal `invalidation_pending` recovery after confirmed outcome
+persistence. Synthetic tests cover isolation, malformed content, selector failures,
+link safety and no external access—not this future coordination protocol.
+No POST, write-policy enablement, journal, concurrency guarantee or mutation
+activation is added, and the original-README audit baseline remains historical.
+
 ## Bookmark source evidence — 2026-09-12
 
 Anonymous static inspection used current

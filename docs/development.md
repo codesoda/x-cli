@@ -113,6 +113,25 @@ cargo test --locked --offline --features live-tests --test live
 The last command runs only offline live-suite guards; the live cases remain
 ignored. Never add `--ignored` to this verification sequence.
 
+Local account cache maintenance (v0.9.0) is covered independently in
+`src/app/tests/cache_purge.rs`, `src/cache/tests/purge.rs`, `src/config/tests.rs`
+and `src/cli/tests.rs`. Full `execute` tests inject panic-on-use transport,
+credentials and profile discovery, using only canonical temporary roots and
+synthetic registrations/content. Check stable-ID isolation, byte-preserved other
+scopes/config/cooldowns, corrupt/missing scope deletion, link safety, invalid
+selectors and unchanged global purge with malformed configuration. Run focused
+checks with `cargo test --locked --offline purge` and
+`cargo test --locked --offline local_account_resolution`.
+
+`Config::resolve_account_id` is narrowly for local account-only maintenance, not
+session authorization: same-ID connections need no preference because no profile
+is selected. Normal `resolve` and Viewer-before-authenticated-cache semantics
+must not change. Scope invalidation uses the existing cache lock and
+`state::remove_file` without enumeration/deserialization; it does not coordinate
+in-flight reads. Future mutation safety still requires account read/write
+serialization or generations plus journal `invalidation_pending` recovery. No new
+dependencies, POST capability, write policy or journal accompany this control.
+
 Never commit cookies, authorization headers, Safe Storage keys, real profile
 databases, private account responses, or secrets in logs, snapshots, issues,
 artifacts, or model/tool transcripts. Redact fixtures before sharing. Zeroizing
