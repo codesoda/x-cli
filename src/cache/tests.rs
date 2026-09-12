@@ -1,4 +1,6 @@
 use super::*;
+mod generation;
+mod generation_security;
 mod purge;
 fn fixture() -> (tempfile::TempDir, Cache) {
     let dir = tempfile::tempdir().unwrap();

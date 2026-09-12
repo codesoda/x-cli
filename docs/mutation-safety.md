@@ -28,8 +28,9 @@ record, not permission to enable mutations or claim they work.
   establish absence or no effect. Never automatically retry.
 - Persist confirmed outcome before account-only cache invalidation, retaining an
   invalidation-pending state until cleanup succeeds. Preserve cooldowns/journal.
-  Serialize same-account reads/writes or use generations to prevent stale reads
-  from refilling a just-invalidated cache. Define lock ordering before activation.
+  The v0.9.1 global cache generation prevents pre-invalidation managed reads
+  from refilling afterward, but does not implement this journal recovery or
+  establish upstream freshness. Define journal/policy lock ordering before activation.
 - Audit crash durability, including creation of parent directories, before
   claiming power-loss-safe journaling. Storage/capacity failures must block
   dispatch. Normal synthetic tests cover identity mismatch, policy, ambiguity,
@@ -113,6 +114,54 @@ persistence. Synthetic tests cover isolation, malformed content, selector failur
 link safety and no external access—not this future coordination protocol.
 No POST, write-policy enablement, journal, concurrency guarantee or mutation
 activation is added, and the original-README audit baseline remains historical.
+
+## Managed cache generation barrier — v0.9.1, 2026-09-12
+
+This supersedes the v0.9.0 point-in-time-only coordination limitation above, not
+its local-account resolution or privacy boundaries. One versioned
+`cache/generation.json` record stores a global monotonically increasing u64;
+missing metadata initially means zero. It uses only private state primitives,
+with bounded constant-size integer metadata and no per-account map/lock files.
+Corrupt/unsupported metadata and overflow are static Storage errors, never a
+reset or a random/time-derived recovery guess.
+
+Under the existing `.cache.lock`, scoped invalidation and global purge first
+persist the increment, then perform their original content unlink/prune work.
+Purge never deletes/resets the generation file. If deletion fails, generation
+may conservatively have advanced. Global purge still ignores configuration;
+scoped purge preserves unrelated content bytes, legacy mixed content, cooldowns,
+config and any journal records. Both block before deletion on invalid generation
+metadata or overflow.
+
+Managed cache misses capture an opaque root-path-bound token before their first
+upstream content request, after Viewer/explicit-handle checks on authenticated
+reads. Capture releases the lock before fetch, including handle lookup, parent,
+reply and post/user/list collection requests. Conditional save checks root and
+generation and executes the original bounded/atomic per-scope put under that
+same cache lock, without recursive locking. No account/cache lock is held across
+network or credential access. A mismatch retains the successful/incomplete
+collection with a static not-stored warning, not a request failure or retry.
+Failed-request results stay uncached; refresh/TTL zero participate, no-cache
+bypasses capture/writes, and ordinary cache hits are unchanged.
+
+A global epoch is deliberately conservative and bounded: account-scoped purge
+can suppress other scopes' in-flight writes, but must not delete or invalidate
+those scopes' existing contents/hits. New reads after invalidation can refill.
+The guarantee covers cooperating managed v0.9.1+ retrievals, not older binaries,
+direct low-level `Cache::put`, manual metadata edits or unstable path topology.
+It does not certify upstream freshness or authorize writes.
+
+Deterministic synthetic temporary-state tests cover root binding, matching/stale
+puts, scope/global invalidation, metadata corruption/overflow, security/size
+guards and preserved state. Real retrieval-seam callbacks pause completion of
+fake public/authenticated content while a local purge completes, then retain
+returned data without stale storage; subsequent invocations cache successfully.
+Post/parent/reply, user and list collections are exercised. This is not physical
+power-loss evidence. Eligible persistent storage and the durability assumptions
+above remain required, as do confirmed-outcome persistence, journal
+`invalidation_pending` recovery, per-account policy and the reviewed protocol.
+No journal, mutation transport, mutation policy activation or X write command is
+implemented; the original-README audit remains an unchanged historical baseline.
 
 ## Bookmark source evidence — 2026-09-12
 

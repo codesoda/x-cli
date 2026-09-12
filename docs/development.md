@@ -127,10 +127,47 @@ checks with `cargo test --locked --offline purge` and
 session authorization: same-ID connections need no preference because no profile
 is selected. Normal `resolve` and Viewer-before-authenticated-cache semantics
 must not change. Scope invalidation uses the existing cache lock and
-`state::remove_file` without enumeration/deserialization; it does not coordinate
-in-flight reads. Future mutation safety still requires account read/write
-serialization or generations plus journal `invalidation_pending` recovery. No new
-dependencies, POST capability, write policy or journal accompany this control.
+`state::remove_file` without content enumeration/deserialization.
+
+In v0.9.1, `src/cache/generation.rs` stores one versioned u64 generation in
+`cache/generation.json`, using private state primitives and `.cache.lock` for
+capture, compare/write and advance-before-delete. The fixed integer schema has
+constant-size serialized metadata (no per-account map or extra lock files).
+Missing metadata is initially zero; corrupt/unsupported metadata and overflow
+fail closed with static Storage errors, before any purge deletion. The counter
+is never reset/deleted by purge; a deletion failure can conservatively advance it.
+Tokens have private root-path/value fields and foreign-root tokens are rejected.
+`put_if_generation` distinguishes `GenerationChanged` from IO errors and `Applied`
+(the normal bounded policy, including removing an oversized value's old hit).
+It invokes the private locked put without recursively acquiring `.cache.lock`.
+`Cache::put` remains explicitly uncoordinated for low-level compatibility.
+
+The app captures on a miss before the first content request/user lookup, after
+Viewer and explicit-handle validation for private reads. No cache lock spans
+network/credential work. Successful post/parent/reply, user and list outputs use
+conditional writes; generation mismatch retains data and adds a static warning,
+without retry or request-failure status. Failed requests remain uncached. Hits
+are unchanged, refresh/TTL zero participate and no-cache bypasses generation
+access and writes. One global epoch conservatively suppresses unrelated in-flight
+writes after scoped purge, but never invalidates unrelated existing content/hits.
+Older binaries, direct low-level puts and manual metadata edits are outside the
+barrier; it does not establish upstream freshness.
+
+Generation regressions live in `src/cache/tests/generation*.rs`,
+`src/app/retrieval/tests/generation*.rs` and the full-dispatch purge suite.
+Synthetic fake content callbacks trigger local purge while the request is still
+in progress; channel completion precedes the fake response, proving no lock is
+held over upstream work. Tests cover subsequent refill, typed collections,
+identity boundaries, no-cache/refresh/TTL zero, corruption, overflow, root binding,
+link safety and preserved state. Run `cargo test --locked --offline generation`,
+then the retrieval and purge focused commands above and all locked offline tests.
+No sleeps, process-global environment changes, HTTP or real credentials are needed.
+
+Future mutation safety still requires journal `invalidation_pending` recovery,
+eligible persistent storage, per-account mutation policy and the reviewed outcome
+protocol. Generations alone are not complete post-mutation recovery or a physical
+power-loss guarantee. No new dependencies, POST capability, write policy or
+journal accompany this control.
 
 Never commit cookies, authorization headers, Safe Storage keys, real profile
 databases, private account responses, or secrets in logs, snapshots, issues,

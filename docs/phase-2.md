@@ -111,11 +111,19 @@ here; ambiguous reused handles still fail without disambiguation. Normal read/au
 resolution remains unchanged, and global purge still works without valid config.
 Public/other-account scopes, registration metadata and cooldowns are preserved.
 
-The primitive is only point-in-time deletion. In-flight reads may refill it;
-future post-mutation cleanup still needs account read/write serialization or
-generations and journal `invalidation_pending` recovery. No write policy, journal,
-POST transport or mutation activation is included. The original-README audit
-remains a historical baseline, not a claim that mutation safeguards are complete.
+The v0.9.1 generation barrier prevents managed pre-invalidation fetches from
+refilling afterward, using one bounded global epoch and no lock over upstream
+work. Scoped purge can conservatively suppress unrelated in-flight writes but
+preserves other existing content/hits. Results are retained with a static warning
+on mismatch; later reads can refill. Older binaries, direct low-level puts and
+manual metadata edits are not coordinated. Generation metadata survives purge;
+corruption/overflow fails before deletion and failed deletion may advance it.
+This is not upstream freshness or complete post-mutation recovery: journal
+`invalidation_pending`, eligible storage, per-account policy and the reviewed
+outcome protocol remain required (see [mutation safety](mutation-safety.md)).
+No write policy, journal, POST transport or mutation activation is included.
+The original-README audit remains a historical baseline, not a claim that
+mutation safeguards are complete.
 
 ## Scope
 - [ ] Lists: view, create, update, delete, and manage membership.
