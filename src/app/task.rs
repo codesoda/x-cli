@@ -1,5 +1,5 @@
 use crate::{
-    cli::{Access, BookmarkCommand, Command, Paging, UserCommand},
+    cli::{Access, BookmarkCommand, Command, LikesCommand, Paging, UserCommand},
     error::{Error, Kind, Result},
 };
 use serde_json::json;
@@ -10,6 +10,7 @@ pub(super) enum Task {
     Search(String, Paging),
     Timeline(String, Paging),
     Bookmarks(Paging),
+    Likes(Paging),
 }
 impl Task {
     pub(super) fn from_command(command: &Command) -> Result<(&Access, Self)> {
@@ -81,6 +82,21 @@ impl Task {
                 }
                 (access, Task::Bookmarks(paging.clone()))
             }
+            Command::Likes {
+                command: LikesCommand::List { access, paging },
+            } => {
+                if access
+                    .account
+                    .as_deref()
+                    .is_none_or(|value| value.is_empty())
+                {
+                    return Err(Error::new(
+                        Kind::InvalidInput,
+                        "Own liked-post reads require an explicit --account selector",
+                    ));
+                }
+                (access, Task::Likes(paging.clone()))
+            }
             _ => unreachable!(),
         };
         task.validate()?;
@@ -92,7 +108,8 @@ impl Task {
             Self::Thread(_, _, _, p)
             | Self::Search(_, p)
             | Self::Timeline(_, p)
-            | Self::Bookmarks(p) => p,
+            | Self::Bookmarks(p)
+            | Self::Likes(p) => p,
         };
         if paging
             .cursor
@@ -112,6 +129,7 @@ impl Task {
             Self::Search(..)
                 | Self::Timeline(..)
                 | Self::Bookmarks(..)
+                | Self::Likes(..)
                 | Self::Thread(_, _, true, _)
         )
     }
@@ -129,6 +147,9 @@ impl Task {
                 p.cursor
             ])
             .to_string(),
+            Self::Likes(p) => {
+                json!(["v1", "own_likes", p.max_pages, p.page_size, p.cursor]).to_string()
+            }
             Self::Bookmarks(p) => {
                 json!(["v1", "bookmarks", p.max_pages, p.page_size, p.cursor]).to_string()
             }

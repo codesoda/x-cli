@@ -53,6 +53,11 @@ pub enum Command {
         #[command(subcommand)]
         command: BookmarkCommand,
     },
+    /// Read the selected account's own liked posts (no like/unlike mutations).
+    Likes {
+        #[command(subcommand)]
+        command: LikesCommand,
+    },
     Auth {
         #[command(subcommand)]
         command: AuthCommand,
@@ -89,6 +94,16 @@ pub enum UserCommand {
 #[derive(Debug, Subcommand)]
 pub enum BookmarkCommand {
     /// List the selected account's bookmarks; never claims an exhaustive collection.
+    List {
+        #[command(flatten)]
+        access: Access,
+        #[command(flatten)]
+        paging: Paging,
+    },
+}
+#[derive(Debug, Subcommand)]
+pub enum LikesCommand {
+    /// List your own liked posts; requires explicit --account, never a target user.
     List {
         #[command(flatten)]
         access: Access,

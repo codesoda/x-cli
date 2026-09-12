@@ -134,6 +134,26 @@ cargo test --locked --features live-tests --test live authenticated_bookmark_smo
 This is a procedure, not recorded live evidence. The agent has not run it.
 Do not share raw bookmark content, cookies, headers, or response bodies.
 
+## Separate own-liked-post smoke test
+
+`authenticated_own_likes_smoke` is separately ignored and not added to either
+existing authenticated sequence. It uses the same account/profile/CI/consent
+checks and private-data withholding as the bookmark smoke, but requests one
+page of the selected account's own liked posts. No arbitrary target user is
+accepted. After installing v0.3.0 or newer, a consenting user may run:
+
+```sh
+XCLI_LIVE=1 XCLI_LIVE_AUTH=1 \
+XCLI_LIVE_ACCOUNT=work XCLI_LIVE_PROFILE=Default \
+XCLI_LIVE_BINARY="$HOME/.local/bin/xcli" \
+cargo test --locked --features live-tests --test live authenticated_own_likes_smoke -- --ignored --test-threads=1
+```
+
+The agent has not run this test. The source-defined Likes endpoint may be
+unavailable on accounts routed to X's newer History UI; stop on rejection or
+rate limits rather than trying another account or endpoint. Share only the fixed
+stage, exit code and typed diagnostic, never private liked-post content.
+
 ## Verification evidence
 
 On 2026-09-10, the original public checks passed before moving into this

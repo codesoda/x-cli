@@ -238,11 +238,21 @@ fn authenticated_connection() -> (PathBuf, String, xcli::config::Connection) {
 #[test]
 #[ignore = "local private bookmark test; requires consent and explicit registered account/profile"]
 fn authenticated_bookmark_smoke() {
+    private_collection_smoke("bookmarks", "authenticated bookmarks");
+}
+
+#[test]
+#[ignore = "local private likes test; requires consent and explicit registered account/profile"]
+fn authenticated_own_likes_smoke() {
+    private_collection_smoke("likes", "authenticated own likes");
+}
+
+fn private_collection_smoke(operation: &str, stage: &str) {
     let (root, account, connection) = authenticated_connection();
     let output = run(
         &root,
         &[
-            "bookmarks",
+            operation,
             "list",
             "--account",
             &account,
@@ -253,7 +263,7 @@ fn authenticated_bookmark_smoke() {
             "--page-size",
             "5",
         ],
-        "authenticated bookmarks",
+        stage,
     );
     assert!(output.provenance.backend == "graphql");
     assert!(
@@ -262,9 +272,9 @@ fn authenticated_bookmark_smoke() {
     );
     assert!(
         output.pages == 1 && !output.complete,
-        "Bookmark collection must be bounded and conservatively incomplete"
+        "Private collection must be bounded and conservatively incomplete"
     );
-    // Empty bookmarks are valid. No private post text/IDs are ever printed.
+    // Empty collections are valid. No private post text/IDs are ever printed.
 }
 
 #[test]

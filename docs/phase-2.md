@@ -1,9 +1,9 @@
 # Phase 2 — Account management
 
 Phase 2 development was explicitly authorized on 2026-09-12. Live X mutations
-were not authorized. The first increment is read-only `bookmarks list`; bookmark
-writes, lists, likes, and follows remain future work. Posting and DMs remain out
-of scope. Source verification and offline tests must not be presented as live
+were not authorized. The read-only increments are `bookmarks list` and own-account
+`likes list`; bookmark writes, lists, like/unlike writes, and follows remain
+future work. Posting and DMs remain out of scope. Source verification and offline tests must not be presented as live
 interoperability.
 
 ## First increment: bookmark reads
@@ -22,6 +22,18 @@ Acceptance criteria:
   user-run live verification kept separate. Never enable add/remove or folders
   incidentally while adding list support.
 
+## Own liked-post reads
+
+Implemented experimentally in v0.3.0: `likes list --account <alias|@handle>`.
+The source-defined GET query is documented in protocol-research.md, including
+its unverified History-rollout caveat. It uses the verified session owner's
+stable ID, rejects arbitrary target users, and requires the same explicit
+account and private cache boundaries as bookmarks. It exposes no like/unlike
+writes, never infers exhaustive collections, and treats missing response roots or
+wrong user discriminators as protocol errors. Source evidence and synthetic tests
+cannot establish live availability; absent authoritative definitions are a stop
+condition.
+
 ## Scope
 - [ ] Lists: view, create, update, delete, and manage membership.
 - [ ] Bookmarks: list, add, remove; separately evaluate folders.
@@ -29,11 +41,26 @@ Acceptance criteria:
 - [ ] Follows: view following/followers, follow, unfollow.
 - [ ] Verify current X GraphQL availability, pagination, permissions, and advanced list features per operation.
 
-## Proposed commands (not implemented)
+## Command status
+
+Implemented experimentally in v0.2.0 (synthetic coverage; live interoperability
+still unverified):
+
+```sh
+xcli bookmarks list --account @codesoda
+```
+
+Implemented experimentally in v0.3.0 (synthetic coverage, not live-verified):
+
+```sh
+xcli likes list --account @codesoda
+```
+
+Proposed commands below remain unimplemented:
+
 ```sh
 xcli lists create "Builders" --account work
 xcli lists members add <list-id> @someone --account work
-xcli bookmarks list --account @codesoda
 xcli bookmarks add <post-url> --account @codesoda
 xcli bookmarks remove <post-url> --account @codesoda
 xcli likes add <post-url> --account work

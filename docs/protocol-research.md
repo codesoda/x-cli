@@ -227,6 +227,60 @@ add, and remove operations are excluded. Live interoperability, account-specific
 feature values and server count behavior remain unverified. The separately
 observed search HTTP 404 is not resolved by this research.
 
+### Phase 2 own-liked-post evidence — 2026-09-12
+
+Current main `main.ef8e0e0fdc2bb9c0a.js` (hash recorded above), module 837876,
+declares `queryId:"o000A_Cp4JPOihhbeEgi0g"`, `operationName:"Likes"`,
+`operationType:"query"`. Its 39 feature names exactly match P and the independent
+bookmark feature fixture; all eight declared post toggles match as well. This
+source review does not replace the existing pinned runtime authorization asset.
+
+Module 965808 imports that operation and calls:
+
+```js
+fetchLikes:({count:r,cursor:i,userId:o})=>e.graphQL(a(),{
+  userId:o,count:r,cursor:i,includePromotedContent:!1,...(0,n.g)(t),
+  withClientEventToken:!1,withBirdwatchNotes:!1,
+  withVoice:t.isTrue("voice_consumption_enabled")
+},M,z(t))
+```
+
+`z(t)` supplies `fieldToggles:{withArticlePlainText:false}` (the browser's
+expression is a feature flag AND false). The shared helper again resolves to
+empty vendor module 812055. No `forcePost` is supplied, so the reviewed query
+uses GET and the normal JSON/content-type envelope. xcli sends `withVoice:false`
+as an explicit conservative optional-variable choice; authenticated feature
+values are not established by these public sources.
+
+The continuation requires `user.result.__typename === "User"`, then selects
+`user.result.timeline.timeline`. xcli requires that discriminator and the raw
+root `/data/user/result/timeline/timeline/instructions`; it does not reproduce
+the browser's empty-state fallback for missing data. Unknown/unavailable user
+discriminators fail as protocol errors, never empty successes.
+
+[UserProfile bundle](https://abs.twimg.com/responsive-web/client-web/bundle.UserProfile.5de779fab7d9982aa.js),
+375,047 bytes, SHA-256
+`a7292f22e102ddf4213ef8664422d2b09202719ae2016338f22d94b652c972c4`,
+module 784820 passes `{count,userId,cursor?}` to `fetchLikes` and uses formatter
+225219 with context `FETCH_LIKES_TIMELINE`. The formatter/cursor handling supports
+the same add/replace/module instructions and opaque Bottom cursor described
+above. Exhaustiveness and actual server count limits remain unverified.
+
+The profile UI computes `Y = viewerUserId === profile.id_str`; it includes the
+Likes route only when `Y` is true. xcli therefore derives `userId` exclusively
+from the explicit account's verified Viewer identity. There is no target-user
+argument or arbitrary-user Likes fallback. This is an application boundary,
+not evidence of server-enforced authorization behavior.
+
+**Rollout caveat:** when `responsive_web_history_screen_enabled` is enabled,
+the same own-profile route redirects to `/i/history/likes`. The fetched logged-out
+configuration enables this flag. The Likes query and direct caller remain in the
+bundle, but may not be the active path for every authenticated rollout. No History
+endpoint was researched or added as a fallback. This is experimental static
+support, not successful live interoperability. All fetches were anonymous public
+assets; no browser/Keychain access, authenticated calls, guest activation or
+mutations occurred.
+
 ## 3. macOS Chrome credential access: supported boundary
 
 First-party source snapshot: Chromium **`233e625e16284f1f1e11150b88ea16e43c325c37`**, inspected 2026-09-10. This is mainline source, **not a verified installed/released Chrome build**:
