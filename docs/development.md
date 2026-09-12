@@ -91,6 +91,28 @@ storage. Credential fixtures should cover digest/padding failures, domain and
 session ambiguity, unknown encryption, SQLite consistency, and denied consent.
 Prefer injected state over modifying process-global environment in tests.
 
+Authenticated retrieval orchestration is exercised directly in
+`src/app/retrieval/tests.rs` and its private child modules. A private
+`ReadGraph`/`GraphFactory` seam in `src/app/retrieval/source.rs` substitutes only
+normalized read results in tests; `execute` delegates to the same generic path
+used by those tests. Real config resolution, credential-provider loading,
+Viewer/stable-ID and explicit-handle checks, cache files, task mapping,
+pagination, rate-limit persistence and cache-save decisions remain in that path.
+The production factory calls `Graphql::new` unchanged, preserving its anonymous
+pinned-asset/hash bootstrap and all wire guards. Never expose this factory as
+CLI/environment configuration or use a test hash/bearer bypass. Provider tests
+remain responsible for exact GraphQL requests/parsing; fake-graph flow coverage
+is not live compatibility evidence. Run the focused offline tests with:
+
+```sh
+cargo test --locked --offline app::retrieval::tests
+cargo test --locked --offline
+cargo test --locked --offline --features live-tests --test live
+```
+
+The last command runs only offline live-suite guards; the live cases remain
+ignored. Never add `--ignored` to this verification sequence.
+
 Never commit cookies, authorization headers, Safe Storage keys, real profile
 databases, private account responses, or secrets in logs, snapshots, issues,
 artifacts, or model/tool transcripts. Redact fixtures before sharing. Zeroizing
