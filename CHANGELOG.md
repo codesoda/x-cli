@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-09-12
+
+### Fixed
+
+- Creating state walks reprocess every opened directory link before descent,
+  including existing directories left by failed attempts. New pairs sync child
+  then parent unconditionally; existing pairs qualify each descriptor separately
+  using fd-based readonly mount flags. All mount-query and writable sync errors
+  fail closed before descendant creation, record publication or lock actions.
+- `mkdirat` races returning `EEXIST` no longer trigger intermediate-directory
+  chmod. Final private-directory repair and existing security/atomicity checks
+  remain intact; non-creating walks retain their prior behavior.
+
+### Added
+
+- Offline synthetic coverage for all-link ordering, repeated failed retries,
+  readonly/writable descriptor combinations, mount-query/sync failures,
+  deterministic creation races and write/lock failure barriers.
+
+### Documentation
+
+- Disclosed extra synchronization and possible storage errors on writable
+  ancestors previously unchecked. Conditional recovery assumes stable topology,
+  storage honoring sync and independently durable readonly namespaces;
+  `ST_RDONLY` is not persistence proof. No physical power-loss simulation,
+  universal mutation-journal guarantee, journal or POST capability is claimed.
+  Future mutation activation still requires persistent-storage eligibility,
+  policy/outcome safeguards and separate live consent.
+
 ## [0.8.1] - 2026-09-12
 
 ### Added
