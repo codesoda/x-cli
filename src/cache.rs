@@ -1,4 +1,4 @@
-//! Cached public post data and persisted per-backend/account cooldowns.
+//! Cached normalized read results and persisted per-backend/account cooldowns.
 //! Keys are digests, not user input paths; credentials are never accepted here.
 use crate::{
     error::{Error, Kind, Result, storage},

@@ -256,6 +256,17 @@ fn authenticated_list_posts_smoke() {
     private_collection_smoke(&["lists", "posts", &list_id], "authenticated list posts");
 }
 
+#[test]
+#[ignore = "local following read; requires consent and explicit account/profile"]
+fn authenticated_following_smoke() {
+    private_collection_smoke(&["following", "list"], "authenticated following");
+}
+#[test]
+#[ignore = "local followers read; requires consent and explicit account/profile"]
+fn authenticated_followers_smoke() {
+    private_collection_smoke(&["followers", "list"], "authenticated followers");
+}
+
 fn private_collection_smoke(operation: &[&str], stage: &str) {
     let (root, account, connection) = authenticated_connection();
     let mut args = operation.to_vec();
@@ -279,7 +290,13 @@ fn private_collection_smoke(operation: &[&str], stage: &str) {
         output.pages == 1 && !output.complete,
         "Private collection must be bounded and conservatively incomplete"
     );
-    // Empty collections are valid. No private post text/IDs are ever printed.
+    if matches!(operation[0], "following" | "followers") {
+        assert!(
+            output.users.is_some() && output.posts.is_empty(),
+            "Expected a user collection"
+        );
+    }
+    // Empty collections are valid. No private content/IDs are ever printed.
 }
 
 #[test]

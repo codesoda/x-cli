@@ -2,6 +2,7 @@ use super::*;
 mod bookmarks;
 mod likes;
 mod lists;
+mod relationships;
 struct Mock {
     status: u16,
     body: Value,

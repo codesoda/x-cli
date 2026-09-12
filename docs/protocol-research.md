@@ -342,6 +342,49 @@ Private-list permissions, account-specific features, inaccessible-list responses
 and live pagination/interoperability remain unverified. List discovery, metadata,
 ranked timelines and membership/write operations are outside this increment.
 
+### Phase 2 relationship-read evidence — 2026-09-12
+
+Current main (hash recorded above) defines two GET queries: module 747136,
+`Following` / `4EQGMEhtdVw8NeVBDQHESQ`, and module 810724,
+`Followers` / `sF7aRC2fRq7OGOOp_qHntA`, both `operationType:"query"`.
+Module 175350 calls them with `{userId,count,cursor?,includePromotedContent:false,
+withGrokTranslatedBio:<followers bio translation feature>}` and the empty shared
+helper. There is no force-POST option. Both complete ordered feature arrays equal
+the 39-name post set P, not the smaller USER set. Their eight declared toggles
+match post metadata, but these callers omit `fieldToggles`; xcli omits that URL
+parameter for these operations rather than sending generic post toggles. Bio
+translation is conservatively false; public logged-out true observations are not
+claimed as authenticated rollout values.
+
+The continuation requires `user.result.__typename === "User"`, then selects
+`user.result.timeline.timeline`. Both raw roots are
+`/data/user/result/timeline/timeline/instructions`. Missing/unknown owner data
+fails rather than reproducing the browser's empty fallback.
+
+[UserFollowLists bundle](https://abs.twimg.com/responsive-web/client-web/bundle.UserFollowLists.22e2b2e9247fbdf7a.js),
+36,628 bytes, SHA-256
+`b522739e1a772830d3c1d5cf40591f6812c3328404770378f5f1ceca1fca8768`,
+uses formatter 225219 and passes `{count,userId,cursor?}`. Item formatter 357725
+recognizes **`itemType:"TimelineUser"`**, then module 60850 reads
+`user_results.result`, requires `__typename:"User"` and `core`. Module 366829
+uses `rest_id` as the ID and `core.screen_name` as the handle. xcli's user
+projection therefore requires those fields; it does not apply the legacy
+post-author fallback. Flat items and module items are supported, as are
+add/replace/pin/add-to-module instructions and opaque Bottom cursors. Unsupported
+removal instructions and unavailable/unknown user variants currently fail closed,
+not as empty successes. Returned users are deduplicated by stable ID.
+
+The browser can supply another profile's ID. xcli's own-account-only selection is
+a conservative product boundary, **not a source/server restriction**: following
+and followers commands derive `userId` only from the explicit account's verified
+Viewer. No arbitrary target user, account rotation or endpoint fallback exists.
+
+This was anonymous bounded static inspection using the current main/vendor hashes
+already recorded above, with no credentials, JS execution, GraphQL requests or
+mutations. Live availability, authentication/transaction requirements, account
+features, server permissions and complete pagination variants remain unverified.
+Neither cursor exhaustion nor a returned count proves an exhaustive social graph.
+
 ## 3. macOS Chrome credential access: supported boundary
 
 First-party source snapshot: Chromium **`233e625e16284f1f1e11150b88ea16e43c325c37`**, inspected 2026-09-10. This is mainline source, **not a verified installed/released Chrome build**:

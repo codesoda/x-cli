@@ -63,6 +63,16 @@ pub enum Command {
         #[command(subcommand)]
         command: ListsCommand,
     },
+    /// List accounts followed by the selected account (no follow/unfollow writes).
+    Following {
+        #[command(subcommand)]
+        command: RelationshipCommand,
+    },
+    /// List followers of the selected account (not an exhaustive social graph).
+    Followers {
+        #[command(subcommand)]
+        command: RelationshipCommand,
+    },
     Auth {
         #[command(subcommand)]
         command: AuthCommand,
@@ -121,6 +131,16 @@ pub enum ListsCommand {
     /// Read the latest-post view of a list; requires its decimal ID and explicit --account.
     Posts {
         list_id: String,
+        #[command(flatten)]
+        access: Access,
+        #[command(flatten)]
+        paging: Paging,
+    },
+}
+#[derive(Debug, Subcommand)]
+pub enum RelationshipCommand {
+    /// Read the verified account's own relationship view; requires explicit --account.
+    List {
         #[command(flatten)]
         access: Access,
         #[command(flatten)]

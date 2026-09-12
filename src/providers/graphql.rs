@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
 
 mod parsing;
+mod users;
 pub use parsing::{check_errors, parse_identity, parse_page, parse_post};
 
 pub struct Graphql<'a> {
@@ -61,8 +62,11 @@ impl<'a> Graphql<'a> {
         .map_err(|_| protocol())?;
         url.query_pairs_mut()
             .append_pair("variables", &variables.to_string())
-            .append_pair("features", &op.features().to_string())
-            .append_pair("fieldToggles", &op.toggles().to_string());
+            .append_pair("features", &op.features().to_string());
+        if !matches!(op, Operation::Following | Operation::Followers) {
+            url.query_pairs_mut()
+                .append_pair("fieldToggles", &op.toggles().to_string());
+        }
         let mut headers = self.session.headers();
         headers.extend([
             (
@@ -100,10 +104,13 @@ impl<'a> Graphql<'a> {
         let v: Value =
             serde_json::from_slice(&r.body).map_err(|_| protocol().at(Diagnostic::Json))?;
         check_errors(&v)?;
-        if op == Operation::Likes
-            && v.pointer("/data/user/result/__typename")
-                .and_then(Value::as_str)
-                != Some("User")
+        if matches!(
+            op,
+            Operation::Likes | Operation::Following | Operation::Followers
+        ) && v
+            .pointer("/data/user/result/__typename")
+            .and_then(Value::as_str)
+            != Some("User")
         {
             return Err(protocol().at(Diagnostic::ResponseRoot));
         }
@@ -137,6 +144,33 @@ impl<'a> Graphql<'a> {
         o.stop_reason = "single_post".into();
         o.warnings.push("Unofficial source-verified protocol; authenticated rollout interoperability is not guaranteed".into());
         Ok(o)
+    }
+    pub fn users_page(
+        &self,
+        op: Operation,
+        account_id: &str,
+        count: u32,
+        cursor: Option<&str>,
+    ) -> Result<crate::pagination::UsersPage> {
+        if !matches!(op, Operation::Following | Operation::Followers) {
+            return Err(Error::new(
+                Kind::Unsupported,
+                "This query is not a user collection",
+            ));
+        }
+        crate::input::id(account_id)?;
+        let mut variables = json!({"userId":account_id,"count":count,
+            "includePromotedContent":false,"withGrokTranslatedBio":false});
+        if let Some(cursor) = cursor {
+            if cursor.is_empty() || cursor.len() > 4096 {
+                return Err(Error::new(
+                    Kind::InvalidInput,
+                    "Cursor must contain 1 to 4096 bytes",
+                ));
+            }
+            variables["cursor"] = json!(cursor);
+        }
+        users::parse_users_page(&self.query(op, variables)?)
     }
     pub fn page(
         &self,

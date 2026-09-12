@@ -1,5 +1,8 @@
 use crate::{
-    cli::{Access, BookmarkCommand, Command, LikesCommand, ListsCommand, Paging, UserCommand},
+    cli::{
+        Access, BookmarkCommand, Command, LikesCommand, ListsCommand, Paging, RelationshipCommand,
+        UserCommand,
+    },
     error::{Error, Kind, Result},
 };
 use serde_json::json;
@@ -12,6 +15,7 @@ pub(super) enum Task {
     Bookmarks(Paging),
     Likes(Paging),
     ListPosts(String, Paging),
+    Relationships { followers: bool, paging: Paging },
 }
 impl Task {
     pub(super) fn from_command(command: &Command) -> Result<(&Access, Self)> {
@@ -124,6 +128,30 @@ impl Task {
                 })?;
                 (access, Task::ListPosts(id, paging.clone()))
             }
+            Command::Following {
+                command: RelationshipCommand::List { access, paging },
+            }
+            | Command::Followers {
+                command: RelationshipCommand::List { access, paging },
+            } => {
+                if access
+                    .account
+                    .as_deref()
+                    .is_none_or(|value| value.is_empty())
+                {
+                    return Err(Error::new(
+                        Kind::InvalidInput,
+                        "Relationship reads require an explicit --account selector",
+                    ));
+                }
+                (
+                    access,
+                    Task::Relationships {
+                        followers: matches!(command, Command::Followers { .. }),
+                        paging: paging.clone(),
+                    },
+                )
+            }
             _ => unreachable!(),
         };
         task.validate()?;
@@ -137,7 +165,8 @@ impl Task {
             | Self::Timeline(_, p)
             | Self::Bookmarks(p)
             | Self::Likes(p)
-            | Self::ListPosts(_, p) => p,
+            | Self::ListPosts(_, p)
+            | Self::Relationships { paging: p, .. } => p,
         };
         if paging
             .cursor
@@ -159,8 +188,16 @@ impl Task {
                 | Self::Bookmarks(..)
                 | Self::Likes(..)
                 | Self::ListPosts(..)
+                | Self::Relationships { .. }
                 | Self::Thread(_, _, true, _)
         )
+    }
+    pub(super) fn expects_users(&self) -> bool {
+        matches!(self, Self::Relationships { .. })
+    }
+    pub(super) fn accepts_cached(&self, output: &crate::model::Output) -> bool {
+        output.users.is_some() == self.expects_users()
+            && (!self.expects_users() || output.posts.is_empty())
     }
     pub(super) fn key(&self) -> String {
         match self {
@@ -171,6 +208,18 @@ impl Task {
                 id,
                 max,
                 replies,
+                p.max_pages,
+                p.page_size,
+                p.cursor
+            ])
+            .to_string(),
+            Self::Relationships {
+                followers,
+                paging: p,
+            } => json!([
+                "v1",
+                "relationships",
+                followers,
                 p.max_pages,
                 p.page_size,
                 p.cursor

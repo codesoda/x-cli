@@ -3,8 +3,8 @@
 Phase 2 development was explicitly authorized on 2026-09-12. Live X mutations
 were not authorized. The read-only increments are `bookmarks list` and own-account
 `likes list`, plus the latest-post list view `lists posts`. Bookmark writes,
-list metadata/discovery and mutations, like/unlike writes, and follows remain
-future work. Posting and DMs remain out of scope. Source verification and offline tests must not be presented as live
+list metadata/discovery and mutations, and like/unlike/follow/unfollow writes
+remain future work. Own-account following/follower reads are available experimentally. Posting and DMs remain out of scope. Source verification and offline tests must not be presented as live
 interoperability.
 
 ## First increment: bookmark reads
@@ -46,6 +46,17 @@ ranked/public-provider fallback or complete-list claim. List discovery/metadata,
 membership changes are separate capabilities, not implied by timeline support.
 Live list permissions and interoperability require separate consented evidence.
 
+## Own-account relationship reads
+
+Implemented experimentally in v0.5.0: `following list --account ...` and
+`followers list --account ...`. Both use the selected account's verified Viewer
+ID, require explicit account selection, and return `users:[{id,handle}]` plus
+`posts:[]`. Post-result JSON remains compatible. User pages share bounded
+pagination/failure handling and private cache isolation; a missing users array
+in old cache data is never accepted as an empty relationship view. Neither
+operation claims exhaustive enumeration or accepts arbitrary target users.
+Source contracts are documented; live authenticated behavior remains unverified.
+
 ## Scope
 - [ ] Lists: view, create, update, delete, and manage membership.
 - [ ] Bookmarks: list, add, remove; separately evaluate folders.
@@ -72,6 +83,13 @@ Implemented experimentally in v0.4.0 (synthetic coverage, not live-verified):
 
 ```sh
 xcli lists posts 123456789 --account @codesoda
+```
+
+Implemented experimentally in v0.5.0 (synthetic coverage, not live-verified):
+
+```sh
+xcli following list --account @codesoda
+xcli followers list --account @codesoda
 ```
 
 Proposed commands below remain unimplemented:

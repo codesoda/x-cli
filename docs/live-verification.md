@@ -174,6 +174,27 @@ permissions; an inaccessible list is a failure, not permission to use another
 account or a public/ranked fallback. Share only the fixed stage, exit code and
 typed diagnostic, never private list posts or raw responses.
 
+## Separate relationship smoke tests
+
+`authenticated_following_smoke` and `authenticated_followers_smoke` are separately
+ignored. Each requires the same explicit account/profile/consent guards, requests
+only the selected account's own relationship view, and checks the `users` output
+shape without printing private identities. Run one explicitly after installing
+v0.5.0 or newer, only if you consent:
+
+```sh
+XCLI_LIVE=1 XCLI_LIVE_AUTH=1 \
+XCLI_LIVE_ACCOUNT=work XCLI_LIVE_PROFILE=Default \
+XCLI_LIVE_BINARY="$HOME/.local/bin/xcli" \
+cargo test --locked --features live-tests --test live authenticated_following_smoke -- --ignored --test-threads=1
+```
+
+To test followers separately, replace the test name with
+`authenticated_followers_smoke`. Both are capped at one page of five requested
+users, retain cooldowns, and withhold captured output. The agent has not run them.
+Stop on failure/rate limits; do not share raw relationship data or try another
+account to work around rejection.
+
 ## Verification evidence
 
 On 2026-09-10, the original public checks passed before moving into this

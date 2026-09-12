@@ -63,6 +63,9 @@ Directory-specific checklists live in
   never from a target-user selector or an automatic History fallback. List-post
   reads require explicit account selection and a validated decimal list ID, use
   only the latest-post operation, and never fall back to ranked/public views.
+  Relationship reads also require explicit account selection and Viewer-derived
+  user IDs. Keep `users` collections distinct from posts and reject cache hits
+  whose shape no longer matches the requested collection.
 - `src/credentials.rs` and `src/credentials/`: session API and local credential
   access. Read [src/credentials/AGENTS.md](src/credentials/AGENTS.md) before editing
   either, including the sibling facade that nested instructions do not scope.
