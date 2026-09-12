@@ -146,6 +146,14 @@ pub fn human(value: &Value) -> String {
                 p.author.handle, p.id, p.text, p.url
             ));
         }
+        if let Some(users) = &out.users {
+            for user in users {
+                s.push_str(&format!(
+                    "\n@{} · {}\nhttps://x.com/{}\n",
+                    user.handle, user.id, user.handle
+                ));
+            }
+        }
         if let Some(cursor) = out.next_cursor {
             s.push_str(&format!("\nNext cursor: {cursor}\n"));
         }

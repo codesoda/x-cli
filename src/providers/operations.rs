@@ -18,6 +18,8 @@ pub enum Operation {
     Bookmarks,
     Likes,
     ListPosts,
+    Following,
+    Followers,
 }
 impl Operation {
     pub fn name(self) -> &'static str {
@@ -31,6 +33,8 @@ impl Operation {
             Self::Bookmarks => "Bookmarks",
             Self::Likes => "Likes",
             Self::ListPosts => "ListLatestTweetsTimeline",
+            Self::Following => "Following",
+            Self::Followers => "Followers",
         }
     }
     pub fn id(self) -> &'static str {
@@ -46,6 +50,8 @@ impl Operation {
             // Reviewed current main's Likes query; not an arbitrary-user capability.
             Self::Likes => "o000A_Cp4JPOihhbeEgi0g",
             Self::ListPosts => "u6PUF1835XGBkf6MQZUV8A",
+            Self::Following => "4EQGMEhtdVw8NeVBDQHESQ",
+            Self::Followers => "sF7aRC2fRq7OGOOp_qHntA",
         }
     }
     pub fn root(self) -> &'static str {
@@ -55,7 +61,9 @@ impl Operation {
             Self::Detail => "/data/threaded_conversation_with_injections_v2/instructions",
             Self::Search => "/data/search_by_raw_query/search_timeline/timeline/instructions",
             Self::User => "/data/user/result",
-            Self::Timeline | Self::Likes => "/data/user/result/timeline/timeline/instructions",
+            Self::Timeline | Self::Likes | Self::Following | Self::Followers => {
+                "/data/user/result/timeline/timeline/instructions"
+            }
             Self::Bookmarks => "/data/bookmark_timeline_v2/timeline/instructions",
             Self::ListPosts => "/data/list/tweets_timeline/timeline/instructions",
         }

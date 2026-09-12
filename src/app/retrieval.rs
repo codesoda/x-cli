@@ -63,7 +63,11 @@ pub(super) fn execute(
             ));
         }
         // Identity verification always precedes authenticated cache access.
-        if let Some(hit) = cached(cache, access, "graphql", account, &key)? {
+        if let Some(hit) = cached(cache, access, "graphql", account, &key)?.filter(|hit| {
+            // Old binaries can discard newly added fields while rewriting a scope.
+            // A missing users array is not an empty relationship collection.
+            task.accepts_cached(hit)
+        }) {
             hit
         } else {
             let fetch =
@@ -119,6 +123,25 @@ pub(super) fn execute(
                     |cursor| {
                         rate_call(cache, "graphql", account, || {
                             graph.page(Operation::Search, query, paging.page_size, cursor)
+                        })
+                    },
+                )?,
+                Task::Relationships { followers, paging } => pagination::collect_users(
+                    Output::new("graphql", Some(actual.id.clone())),
+                    paging.max_pages,
+                    paging.cursor.clone(),
+                    |cursor| {
+                        rate_call(cache, "graphql", account, || {
+                            graph.users_page(
+                                if *followers {
+                                    Operation::Followers
+                                } else {
+                                    Operation::Following
+                                },
+                                &actual.id,
+                                paging.page_size,
+                                cursor,
+                            )
                         })
                     },
                 )?,

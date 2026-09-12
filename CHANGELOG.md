@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-12
+
+### Added
+
+- Experimental own-account `following list --account ...` and
+  `followers list --account ...`, with source-reviewed GET queries, explicit
+  account selection, Viewer-derived IDs, bounded pagination and private scoped
+  caches. No arbitrary target users, follow/unfollow writes or public fallback.
+  Live availability, permissions and complete pagination remain unverified.
+- Normalized `users:[{id,handle}]` for relationship collections, profile-link
+  human output, and shared post/user pagination with stable-ID deduplication and
+  partial-failure retention. Post JSON remains compatible; relationship results
+  include `posts:[]`. Old cache entries lacking the required users array are
+  bypassed rather than treated as empty success.
+- Synthetic model/cache, pagination, user parser, request/routing and failure
+  tests, plus separately ignored installed-binary live procedures. No live
+  authenticated relationship checks were performed by the agent.
+
 ## [0.4.0] - 2026-09-12
 
 ### Added

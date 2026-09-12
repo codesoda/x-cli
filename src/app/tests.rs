@@ -2,6 +2,7 @@ use super::*;
 use clap::Parser;
 mod likes;
 mod lists;
+mod relationships;
 
 struct NoExternalAccess;
 impl Transport for NoExternalAccess {
@@ -142,6 +143,12 @@ fn list_posts_cache_never_bypasses_session_loading_or_cooldown() {
     private_collection_cache_guards(&["lists", "posts", "456"]);
 }
 
+#[test]
+fn relationships_cache_never_bypasses_session_loading_or_cooldown() {
+    private_collection_cache_guards(&["following", "list"]);
+    private_collection_cache_guards(&["followers", "list"]);
+}
+
 fn private_collection_cache_guards(operation: &[&str]) {
     struct Expired;
     impl CredentialProvider for Expired {
@@ -173,13 +180,12 @@ fn private_collection_cache_guards(operation: &[&str]) {
     let cli = Cli::try_parse_from(args).unwrap();
     let (_, task) = task::Task::from_command(&cli.command).unwrap();
     let cache = Cache::new(root.join("cache"));
+    let mut output = Output::new("graphql", Some("123".into()));
+    if task.expects_users() {
+        output.users = Some(vec![]);
+    }
     cache
-        .put(
-            "graphql",
-            Some("123"),
-            &task.key(),
-            &Output::new("graphql", Some("123".into())),
-        )
+        .put("graphql", Some("123"), &task.key(), &output)
         .unwrap();
     let error = execute(&cli, &NoExternalAccess, &Expired, || {
         panic!("unexpected discovery")

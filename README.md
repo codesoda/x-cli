@@ -60,7 +60,7 @@ checks that the archive contains exactly the `xcli` binary reporting the expecte
 version, and installs atomically to `~/.local/bin/xcli` without sudo. Add
 `~/.local/bin` to PATH. To inspect before executing, download `install.sh` first
 and run it with `sh install.sh --release` (see `sh install.sh --help` for the
-full mode and environment contract). Set `XCLI_VERSION=v0.4.0` to pin a release,
+full mode and environment contract). Set `XCLI_VERSION=v0.5.0` to pin a release,
 or `XCLI_INSTALL_DIR=/your/bin` to choose the destination. Downloads are
 anonymous `curl` by default (`XCLI_DOWNLOAD_MODE=auto|curl`); set
 `XCLI_DOWNLOAD_MODE=gh` to use an authenticated GitHub CLI instead. Archives and
@@ -121,6 +121,10 @@ xcli likes list --account work --max-pages 2 --no-cache
 # Latest-post view of a known list; use its decimal list ID, not a post URL.
 xcli lists posts 123456789 --account work --max-pages 2 --no-cache
 
+# The selected account's own relationship views; output contains users, not posts.
+xcli following list --account work --max-pages 2 --no-cache
+xcli followers list --account work --max-pages 2 --no-cache
+
 # Resume an upstream view using the returned opaque cursor.
 xcli search "rust" --account work --cursor '<next_cursor>' --max-pages 1
 
@@ -177,6 +181,17 @@ results or an exhaustive archive. List discovery, metadata, create/update/delete
 and membership commands are not implemented. It reuses the same pagination and
 account-isolated cache controls as bookmarks; private-list content is not
 encrypted at rest. Missing/inaccessible data fails without public fallback.
+
+`following list` and `followers list` are available starting with v0.5.0 as
+experimental, **not live-verified**, own-account relationship views. An explicit
+`--account` is required; neither a default nor `--connection` alone suffices.
+There is no target-user argument or follow/unfollow write command. Output adds
+`users:[{id,handle}]` (including an empty array for a valid empty collection) and
+has `posts:[]`; post reads retain their existing JSON without a `users` field.
+Human output renders profile URLs. Pagination, private account-scoped cache
+controls and incomplete-collection exit 12 apply; cached relationship data is
+not encrypted at rest. Missing/unsupported user shapes fail explicitly, and no
+result is claimed to be a complete follower/following graph.
 
 `--backend fxtwitter --account work` and authenticated-only operations on FxTwitter are rejected. There is no automatic provider/account fallback. All requests are bounded by a 30-second timeout and an 8 MiB response limit. There are **no automatic retries**. Rate-limit responses persist a backend/account-scoped cooldown; honor the returned retry advice.
 
@@ -245,7 +260,7 @@ Errors are JSON on stderr; results are JSON on stdout. GraphQL failures may incl
 
 ## Security and caching
 
-- Phase 1 exposes **only GET read queries**. No posting, DMs, like/unlike mutations, follows, bookmark mutations, list mutations, account/proxy rotation, or browser-session switching.
+- Phase 1 exposes **only GET read queries**. No posting, DMs, like/unlike mutations, follow/unfollow mutations, bookmark mutations, list mutations, account/proxy rotation, or browser-session switching.
 - OS-supported, in-process Keychain retrieval; only necessary X cookies are selected. No shell-based secret output, persistent cookie export, or protection bypass.
 - Only supported Chrome schema/encryption variants are decoded. Chromium source evidence and remaining compatibility questions are recorded in [Protocol research](docs/protocol-research.md).
 - Secrets are excluded from serialization/debug/error output and practical owned buffers are zeroized. This is not a guarantee against memory inspection, OS swap, or a compromised machine.
@@ -270,6 +285,7 @@ Errors are JSON on stderr; results are JSON on stdout. GraphQL failures may incl
 | Bookmark listing | Experimental authenticated read; synthetic tests only, no live verification |
 | Own liked-post listing | Experimental authenticated read; synthetic tests only, rollout availability unverified |
 | List-post timelines | Experimental latest-post read; synthetic tests only, private-list permissions/live behavior unverified |
+| Following/follower lists | Experimental own-account user collections; synthetic tests only, live behavior unverified |
 | Phase 2 mutations | Unimplemented; [issue #1](https://github.com/codesoda/x-cli/issues/1) |
 
 **Remaining live-verification blockers:** the user-observed search failure and untested timeline stage need further consented local evidence. Broader released-Chrome compatibility, X account-specific feature values, required transaction headers, identity semantics and pagination variants also remain unverified. The current client uses a documented public feature snapshot plus conservative optional-variable choices. It does not fabricate transaction IDs or circumvent browser/OS/network challenges. On rejection, capture only xcli's redacted error kind/exit code and operation name—not cookies or raw responses. See [protocol evidence and attempted alternatives](docs/protocol-research.md) and the [safe local live-verification sequence](docs/live-verification.md).

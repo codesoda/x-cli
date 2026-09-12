@@ -1,24 +1,92 @@
 use crate::{
     error::Result,
-    model::{Output, Post},
+    model::{Identity, Output, Post},
 };
 use std::collections::HashSet;
+
+#[cfg(test)]
+mod user_tests;
 
 pub struct Page {
     pub posts: Vec<Post>,
     pub next_cursor: Option<String>,
     pub warnings: Vec<String>,
 }
-/// Collect a bounded view. Cursor exhaustion never proves all X content was exposed.
+pub struct UsersPage {
+    pub users: Vec<Identity>,
+    pub next_cursor: Option<String>,
+    pub warnings: Vec<String>,
+}
+struct Items<T> {
+    entries: Vec<T>,
+    next_cursor: Option<String>,
+    warnings: Vec<String>,
+}
+/// Collect a bounded post view. Cursor exhaustion never proves all X content was exposed.
 pub fn collect(
-    mut out: Output,
+    out: Output,
     max_pages: u32,
     start: Option<String>,
     mut fetch: impl FnMut(Option<&str>) -> Result<Page>,
 ) -> Result<Output> {
+    collect_items(
+        out,
+        max_pages,
+        start,
+        |cursor| {
+            let page = fetch(cursor)?;
+            Ok(Items {
+                entries: page.posts,
+                next_cursor: page.next_cursor,
+                warnings: page.warnings,
+            })
+        },
+        |post: &Post| post.id.as_str(),
+        |out, post| out.posts.push(post),
+    )
+}
+/// User collections share the same cursor/failure rules and deduplicate by stable ID.
+pub fn collect_users(
+    mut out: Output,
+    max_pages: u32,
+    start: Option<String>,
+    mut fetch: impl FnMut(Option<&str>) -> Result<UsersPage>,
+) -> Result<Output> {
+    out.posts.clear();
+    out.users = Some(vec![]);
+    collect_items(
+        out,
+        max_pages,
+        start,
+        |cursor| {
+            let page = fetch(cursor)?;
+            Ok(Items {
+                entries: page.users,
+                next_cursor: page.next_cursor,
+                warnings: page.warnings,
+            })
+        },
+        |user: &Identity| user.id.as_str(),
+        |out, user| {
+            out.users
+                .as_mut()
+                .expect("user collection initialized")
+                .push(user);
+        },
+    )
+}
+fn collect_items<T>(
+    mut out: Output,
+    max_pages: u32,
+    start: Option<String>,
+    mut fetch: impl FnMut(Option<&str>) -> Result<Items<T>>,
+    id: impl Fn(&T) -> &str,
+    mut append: impl FnMut(&mut Output, T),
+) -> Result<Output> {
+    out.complete = false;
     let mut cursor = start;
     let mut cursors = HashSet::new();
-    let mut posts = HashSet::new();
+    let mut seen = HashSet::new();
     if let Some(c) = &cursor {
         cursors.insert(c.clone());
     }
@@ -40,9 +108,9 @@ pub fn collect(
         };
         out.pages += 1;
         out.warnings.extend(page.warnings);
-        for p in page.posts {
-            if posts.insert(p.id.clone()) {
-                out.posts.push(p);
+        for entry in page.entries {
+            if seen.insert(id(&entry).to_owned()) {
+                append(&mut out, entry);
             }
         }
         cursor = page.next_cursor.filter(|s| !s.is_empty());
@@ -59,9 +127,8 @@ pub fn collect(
         out.stop_reason = "page_limit".into();
     }
     out.next_cursor = cursor;
-    out.warnings.push(
-        "This is an upstream-visible collection, not a complete archive or reply tree".into(),
-    );
+    out.warnings
+        .push("This is an upstream-visible collection, not an exhaustive archive".into());
     Ok(out)
 }
 /// Fetch parents one by one using the same backend and identity. Unknown parent metadata stops safely.

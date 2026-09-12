@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Identity {
     pub id: String,
@@ -28,6 +31,9 @@ pub struct Provenance {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Output {
     pub posts: Vec<Post>,
+    /// Present (including an empty array) only for user collections. Post output stays compatible.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub users: Option<Vec<Identity>>,
     pub provenance: Provenance,
     pub complete: bool,
     #[serde(default)]
@@ -51,6 +57,7 @@ impl Output {
     pub fn new(backend: &str, account_id: Option<String>) -> Self {
         Self {
             posts: vec![],
+            users: None,
             provenance: Provenance {
                 backend: backend.into(),
                 account_id,
